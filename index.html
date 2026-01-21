@@ -194,18 +194,6 @@
     </style>
 </head>
 <body>
-
-    <!-- Loading Overlay -->
-    <div id="loadingOverlay">
-        <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
-            <span class="visually-hidden">Loading...</span>
-        </div>
-        <p class="text-muted fw-bold animate-pulse" id="loadingText">Memuat Data PrimaDev...</p>
-        <button id="forceCloseLoading" class="btn btn-sm btn-outline-danger mt-3 d-none" onclick="document.getElementById('loadingOverlay').style.display='none'">
-            Kelamaan? Paksa Tutup (Debug Mode)
-        </button>
-    </div>
-
     <!-- LOGIN SECTION -->
     <div id="loginSection">
         <div class="login-card text-center">
@@ -560,10 +548,36 @@
             }
         };
 
-        window.handleLogout = async () => {
-            await signOut(auth);
-            // onAuthStateChanged akan otomatis ngelempar ke halaman login
-            Swal.fire('Logged Out', 'See you!', 'success');
+        window.handleLogout = () => {
+            Swal.fire({
+                title: 'Sign Out?',
+                text: "Yakin mau ninggalin dashboard ini, Nu?",
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444', // Merah biar warning
+                cancelButtonColor: '#cbd5e1',
+                confirmButtonText: 'Ya, Logout',
+                cancelButtonText: 'Batal'
+            }).then(async (result) => {
+                if (result.isConfirmed) {
+                    // 1. Tampilkan Loading Cantik
+                    Swal.fire({
+                        title: 'Signing out...',
+                        html: 'Membersihkan sesi dan token...',
+                        timer: 1500, // Kasih jeda 1.5 detik biar kerasa "proses"-nya
+                        timerProgressBar: true,
+                        didOpen: () => {
+                            Swal.showLoading();
+                        }
+                    }).then(async () => {
+                        // 2. Baru beneran logout dari Firebase
+                        await signOut(auth);
+                        
+                        // onAuthStateChanged bakal otomatis mindahin halaman, 
+                        // tapi karena udah ada jeda Swal, rasanya bakal lebih smooth.
+                    });
+                }
+            });
         };
 
         // --- API HELPER ---
@@ -597,19 +611,41 @@
 
         // --- DATA FETCHING ---
         const fetchData = async () => {
-            // Nyalain loading pas mau fetch
-            loadingOverlay.style.display = 'flex';
+            const tbody = document.getElementById('licenseTableBody');
+            const emptyState = document.getElementById('emptyState');
+            
+            // 1. Sembunyiin Empty State dulu
+            emptyState.classList.add('d-none');
+
+            // 2. Suntikkan Spinner ke dalam Tabel (Gak ngeblokir layar lagi)
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="7" class="text-center py-5">
+                        <div class="spinner-border text-primary mb-2" role="status" style="width: 2rem; height: 2rem;"></div>
+                        <p class="text-muted small fw-bold animate-pulse mb-0">Sedang menyinkronkan data...</p>
+                    </td>
+                </tr>
+            `;
             
             try {
+                // Ambil data (Loading spinner di tabel tetep muter)
                 const data = await callApi('GET');
                 processData(data); 
             } catch (e) {
                 console.error("API Fetch Error:", e);
-                Swal.fire('API Error', e.message, 'error');
-            } finally {
-                // MATIIN LOADING DISINI (PENTING!)
-                loadingOverlay.style.display = 'none';
-            }
+                // Kalau error, kasih tau di dalem tabel juga biar rapi
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="7" class="text-center py-5 text-danger">
+                            <i class="fa-solid fa-triangle-exclamation mb-2 fs-4"></i>
+                            <p class="fw-bold mb-0">Gagal memuat data.</p>
+                            <small>${e.message}</small>
+                            <br>
+                            <button class="btn btn-sm btn-outline-danger mt-3" onclick="fetchData()">Coba Lagi</button>
+                        </td>
+                    </tr>
+                `;
+            } 
         };
 
         const processData = (dataArray) => {
@@ -698,16 +734,88 @@
         // --- HELPERS ---
         const getEmailTemplate = (data) => {
             return `
-                <div style="font-family: sans-serif; padding: 20px; border: 1px solid #ddd;">
-                    <h2 style="color: #4f46e5;">PrimaDev License</h2>
-                    <p>Hi ${data.name},</p>
-                    <p>Here is your license key for <strong>com.primadev.strukapp</strong>:</p>
-                    <div style="background: #f3f4f6; padding: 15px; font-family: monospace; font-size: 18px; text-align: center; border-radius: 8px; margin: 20px 0;">
-                        ${data.key}
-                    </div>
-                    <p>Type: <strong>${data.type}</strong><br>Expires: <strong>${data.expiryDate}</strong></p>
-                    <p>Enjoy!<br>- Wisnu</p>
-                </div>
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <style>
+                        .hover-btn:hover { background-color: #4338ca !important; }
+                    </style>
+                </head>
+                <body style="margin: 0; padding: 0; background-color: #f3f4f6; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
+                    <table role="presentation" width="100%" border="0" cellspacing="0" cellpadding="0">
+                        <tr>
+                            <td align="center" style="padding: 40px 0;">
+                                
+                                <table role="presentation" width="100%" style="max-width: 600px; background-color: #ffffff; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); overflow: hidden;">
+                                    
+                                    <tr>
+                                        <td style="background-color: #4f46e5; padding: 30px; text-align: center;">
+                                            <h1 style="color: #ffffff; margin: 0; font-size: 24px; letter-spacing: 1px;">PRIMADEV</h1>
+                                            <p style="color: #e0e7ff; margin: 5px 0 0 0; font-size: 14px;">License SPBU Struk</p>
+                                        </td>
+                                    </tr>
+
+                                    <tr>
+                                        <td style="padding: 40px 30px;">
+                                            <p style="color: #374151; font-size: 16px; margin-bottom: 20px;">
+                                                Hi <strong>${data.name}</strong>,
+                                            </p>
+                                            <p style="color: #6b7280; font-size: 15px; line-height: 1.6; margin-bottom: 25px;">
+                                                Terima kasih telah membeli Lisensi untuk <strong>SPBU Struk</strong>. Pembayaran anda telah dikonfirmasi. Dibawah ini adalah Lisensi penuh anda, silahkan gunakan untuk mengaktifkan aplikasi.
+                                            </p>
+
+                                            <div style="background-color: #f8fafc; border: 2px dashed #cbd5e1; border-radius: 12px; padding: 20px; text-align: center; margin-bottom: 30px;">
+                                                <p style="color: #64748b; font-size: 12px; text-transform: uppercase; letter-spacing: 1px; margin: 0 0 10px 0; font-weight: bold;">License Key</p>
+                                                <code style="font-family: 'Courier New', Courier, monospace; font-size: 24px; font-weight: bold; color: #4f46e5; letter-spacing: 2px; display: block;">${data.key}</code>
+                                            </div>
+
+                                            <table width="100%" style="margin-bottom: 30px;">
+                                                <tr>
+                                                    <td width="50%" style="padding-right: 10px;">
+                                                        <div style="background-color: #eff6ff; padding: 15px; border-radius: 8px;">
+                                                            <p style="margin: 0; color: #1e40af; font-size: 11px; font-weight: bold; text-transform: uppercase;">Plan Type</p>
+                                                            <p style="margin: 5px 0 0 0; color: #1e3a8a; font-weight: bold; font-size: 14px;">${data.type.toUpperCase()}</p>
+                                                        </div>
+                                                    </td>
+                                                    <td width="50%" style="padding-left: 10px;">
+                                                        <div style="background-color: #f0fdf4; padding: 15px; border-radius: 8px;">
+                                                            <p style="margin: 0; color: #166534; font-size: 11px; font-weight: bold; text-transform: uppercase;">Valid Until</p>
+                                                            <p style="margin: 5px 0 0 0; color: #14532d; font-weight: bold; font-size: 14px;">${data.expiryDate}</p>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            </table>
+
+                                            <div style="text-align: center; margin-bottom: 20px;">
+                                                <a href="#" style="background-color: #4f46e5; color: #ffffff; padding: 14px 32px; border-radius: 50px; text-decoration: none; font-weight: bold; font-size: 16px; display: inline-block;">Open Dashboard</a>
+                                            </div>
+                                            
+                                            <p style="text-align: center; color: #9ca3af; font-size: 12px; margin-top: 30px;">
+                                                Contact Me:
+                                                wisnu.bussines99@gmail.com
+                                            </p>
+                                        </td>
+                                    </tr>
+
+                                    <tr>
+                                        <td style="background-color: #f9fafb; padding: 20px; text-align: center; border-top: 1px solid #e5e7eb;">
+                                            <p style="color: #9ca3af; font-size: 11px; margin: 0;">
+                                                &copy; ${new Date().getFullYear()} PrimaDev Inc. All rights reserved.<br>
+                                                Jakarta, Indonesia
+                                            </p>
+                                        </td>
+                                    </tr>
+                                </table>
+                                
+                                <p style="text-align: center; margin-top: 20px; color: #9ca3af; font-size: 12px;">
+                                    <a href="#" style="color: #9ca3af; text-decoration: underline;">Unsubscribe</a> if you want to stop receiving updates.
+                                </p>
+
+                            </td>
+                        </tr>
+                    </table>
+                </body>
+                </html>
             `;
         };
         
