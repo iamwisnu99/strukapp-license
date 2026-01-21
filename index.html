@@ -711,23 +711,26 @@
 
         const init = () => {
             console.log('Aplikasi com.primadev.strukapp starting...');
-            
-            // Cek dulu, punya tiket (token) gak?
-            const token = localStorage.getItem('token'); // <-- Pastiin key-nya bener
-            
+            const token = localStorage.getItem('token'); 
+
             if (!token) {
                 console.warn('Belum login nih, bos. Munculin modal login dulu.');
-                // JANGAN panggil fetchData().
-                new bootstrap.Modal(document.getElementById('loginSection')).show(); 
+                
+                // --- CEK DULU ADA GAK BARANGNYA ---
+                const modalElement = document.getElementById('loginModal');
+                console.log('Modal Element ditemukan?', modalElement); // <-- Liat ini di console!
+
+                if (modalElement) {
+                    new bootstrap.Modal(modalElement).show(); 
+                } else {
+                    console.error("WOY WISNU! Elemen id='loginModal' GAK ADA di HTML! Cek spelling lu!");
+                    alert("Error: Login modal not found. Check Console.");
+                }
             } else {
-                // Nah, kalau ada token, baru boleh ambil data
                 fetchData();
                 updateStats();
             }
         };
-
-        // Start
-        init();
     </script>
 </body>
 </html>
