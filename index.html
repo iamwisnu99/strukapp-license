@@ -711,10 +711,19 @@
 
         const init = () => {
             console.log('Aplikasi com.primadev.strukapp starting...');
-            // Biasanya sih lu mau load data pas awal kan?
-            fetchData(); 
-            // Atau update stats dummy kalo data belum ada
-            updateStats();
+            
+            // Cek dulu, punya tiket (token) gak?
+            const token = localStorage.getItem('token'); // <-- Pastiin key-nya bener
+            
+            if (!token) {
+                console.warn('Belum login nih, bos. Munculin modal login dulu.');
+                // JANGAN panggil fetchData().
+                new bootstrap.Modal(document.getElementById('loginModal')).show(); 
+            } else {
+                // Nah, kalau ada token, baru boleh ambil data
+                fetchData();
+                updateStats();
+            }
         };
 
         // Start
