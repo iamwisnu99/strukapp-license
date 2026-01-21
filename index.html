@@ -200,10 +200,13 @@
         <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
             <span class="visually-hidden">Loading...</span>
         </div>
-        <p class="text-muted fw-bold animate-pulse">Memuat Data PrimaDev...</p>
+        <p class="text-muted fw-bold animate-pulse" id="loadingText">Memuat Data PrimaDev...</p>
+        <button id="forceCloseLoading" class="btn btn-sm btn-outline-danger mt-3 d-none" onclick="document.getElementById('loadingOverlay').style.display='none'">
+            Kelamaan? Paksa Tutup (Debug Mode)
+        </button>
     </div>
 
-    <!-- LOGIN SECTION (Hidden by default via JS) -->
+    <!-- LOGIN SECTION -->
     <div id="loginSection">
         <div class="login-card text-center">
             <div class="mb-4">
@@ -233,7 +236,7 @@
         </div>
     </div>
 
-    <!-- DASHBOARD SECTION (Hidden initially) -->
+    <!-- DASHBOARD SECTION -->
     <div id="dashboardSection" class="d-none">
         <!-- Navbar -->
         <nav class="navbar navbar-expand-lg sticky-top">
@@ -255,8 +258,7 @@
                 <div>
                     <h2 class="fw-bold mb-1 text-dark">License Manager</h2>
                     <p class="text-muted mb-0">Control panel for <strong>com.primadev.strukapp</strong></p>
-                    <!-- Status Indikator Backend -->
-                    <span class="badge bg-secondary mt-2" id="backendStatusBadge">Running: Client Mode</span>
+                    <span class="badge bg-success mt-2" id="backendStatusBadge">Secured by Netlify Functions</span>
                 </div>
                 <div class="d-none d-md-block">
                     <span class="badge bg-light text-dark border p-2">
@@ -395,11 +397,10 @@
                             </div>
                         </div>
                         
-                        <!-- REQ #1: Toggle Switch -->
                         <div class="d-flex align-items-center justify-content-between p-3 bg-light rounded-3 mb-4 border">
                             <div>
                                 <span class="fw-bold d-block text-dark">Kirim Email Otomatis?</span>
-                                <span class="small text-muted">Menggunakan EmailJS template.</span>
+                                <span class="small text-muted">Akan diproses oleh Server.</span>
                             </div>
                             <div class="form-check form-switch">
                                 <input class="form-check-input" type="checkbox" role="switch" id="sendEmailCheck" checked>
@@ -474,37 +475,30 @@
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+    <!-- Note: EmailJS Script REMOVED from Frontend because Backend handles it -->
 
     <!-- Firebase & App Logic -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getDatabase, ref, push, set, onValue, update, remove, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
-
-        // --- PENTING UNTUK WISNU ---
-        const USE_NETLIFY_BACKEND = true; 
-
-        // Config
+        // NOTE: Kita tidak butuh SDK Database di Frontend karena kita 100% pake API Netlify
+        
+        // --- CONFIG FIREBASE CLIENT SIDE (WAJIB ADA & AMAN UNTUK PUBLIK) ---
         const firebaseConfig = {
-            apiKey: "AIzaSyBB3BJbwwV7Qo_2LIDQn5DYwebs_NxDocE", // <-- Tulis stringnya, jangan process.env
+            apiKey: "AIzaSyBB3BJbwwV7Qo_2LIDQn5DYwebs_NxDocE", 
             authDomain: "strukmaker-3327d110.firebaseapp.com",
-            databaseURL: "https://strukmaker-3327d110-default-rtdb.asia-southeast1.firebasedatabase.app",
             projectId: "strukmaker-3327d110",
             storageBucket: "strukmaker-3327d110.firebasestorage.app",
             messagingSenderId: "486037943823",
             appId: "1:486037943823:web:cb353cbb995ece5f41957a"
         };
-        const EMAILJS_PUBLIC_KEY = "wdPfGfCEqPUcQiNxF"; 
-        const EMAILJS_SERVICE_ID = process.env.EMAILJS_SERVICE_ID;         
-        const EMAILJS_TEMPLATE_ID = process.env.EMAILJS_TEMPLATE_ID;
-
+        
         // Init
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
-        const db = getDatabase(app); 
-        const DB_PATH = 'licenses';
-        const API_URL = '/api/licenses'; // Netlify Endpoint
+        
+        // Backend URL (Otomatis detect local vs production)
+        const API_URL = '/api/licenses'; 
 
         // UI
         const loadingOverlay = document.getElementById('loadingOverlay');
@@ -530,8 +524,8 @@
                 await signInWithEmailAndPassword(auth, email, password);
                 Swal.fire({ icon: 'success', title: 'Welcome Boss!', timer: 1500, showConfirmButton: false });
             } catch (error) {
+                // Auto Register Logic
                 if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
-                    // Auto Register for Preview Convenience
                     try {
                         console.log("Auto-registering admin...");
                         await createUserWithEmailAndPassword(auth, email, password);
@@ -568,62 +562,43 @@
 
             if (body) options.body = JSON.stringify(body);
             
-            // Note: In preview, this fetch will fail (404/Network Error) if not mocked/proxied.
-            // Hence the USE_NETLIFY_BACKEND flag.
             const res = await fetch(`${API_URL}${queryString}`, options);
             if (!res.ok) {
-                const errData = await res.json().catch(() => ({}));
-                throw new Error(errData.error || `API Error: ${res.status}`);
+                const text = await res.text();
+                let errMsg = `HTTP Error ${res.status}`;
+                try {
+                    const json = JSON.parse(text);
+                    if(json.error) errMsg = json.error;
+                } catch(e) {}
+                throw new Error(errMsg);
             }
             return res.json();
         };
 
-        // --- CORE LOGIC (HYBRID) ---
+        // --- CORE LOGIC (BACKEND ONLY) ---
         const fetchData = async () => {
-            if (USE_NETLIFY_BACKEND) {
-                // Method A: Fetch from Netlify API
-                try {
-                    const data = await callApi('GET');
-                    processData(data); // API returns array directly
-                    loadingOverlay.style.display = 'none';
-                } catch (e) {
-                    console.error("API Fetch Error:", e);
-                    Swal.fire('API Error', 'Gagal ambil data dari backend Netlify. Pastikan sudah deploy!', 'error');
+            // Safety timeout
+            const safetyTimeout = setTimeout(() => {
+                if(loadingOverlay.style.display !== 'none') {
+                    document.getElementById('loadingText').innerText = "Koneksi lambat atau backend error...";
+                    document.getElementById('forceCloseLoading').classList.remove('d-none');
                 }
-            } else {
-                // Method B: Client SDK (Realtime)
-                // Existing Listener already setup in 'setupRealtimeListener'
-                // This function is mostly for Manual Refresh button in backend mode
-                if(!document.getElementById('licenseTableBody').hasAttribute('data-loaded')) {
-                    setupRealtimeListener();
-                }
-            }
-        };
+            }, 8000);
 
-        const setupRealtimeListener = () => {
-            if (USE_NETLIFY_BACKEND) {
-                fetchData(); // Initial fetch
-                return;
-            }
-
-            // Firebase SDK Realtime Listener
-            onValue(ref(db, DB_PATH), (snapshot) => {
-                document.getElementById('licenseTableBody').setAttribute('data-loaded', 'true');
-                licensesData = [];
-                const data = snapshot.val();
-                
-                // Transform Object {KEY: {data}} -> Array [{id:KEY, ...data}]
-                if (data) {
-                    Object.keys(data).forEach(key => {
-                        licensesData.push({ id: key, key: key, ...data[key] });
-                    });
-                }
-                
-                processData(licensesData);
+            try {
+                // Selalu ambil dari API Netlify
+                const data = await callApi('GET');
+                processData(data); 
+            } catch (e) {
+                console.error("API Fetch Error:", e);
+                let msg = e.message;
+                if (msg.includes("404")) msg = "Backend 404 (File netlify.toml hilang?)";
+                if (msg.includes("500")) msg = "Backend Error 500 (Environment Variables Netlify Kosong/Salah?)";
+                Swal.fire('API Error', msg, 'error');
+            } finally {
+                clearTimeout(safetyTimeout);
                 loadingOverlay.style.display = 'none';
-            }, (error) => {
-                console.error("RTDB Error", error);
-            });
+            }
         };
 
         const processData = (dataArray) => {
@@ -633,15 +608,14 @@
             updateStats();
         };
 
-        // --- CRUD ACTIONS (HYBRID) ---
+        // --- CRUD ACTIONS ---
         window.handleCreateSubmit = async (e) => {
             e.preventDefault();
             const btn = e.target.querySelector('button[type="submit"]');
             const originalText = btn.innerHTML;
-            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Processing...';
             btn.disabled = true;
 
-            // Form Data
             const payload = {
                 name: document.getElementById('createName').value,
                 email: document.getElementById('createEmail').value,
@@ -649,7 +623,6 @@
                 expiryDate: document.getElementById('createExpiry').value,
                 key: document.getElementById('createKey').value,
                 sendEmailCheck: document.getElementById('sendEmailCheck').checked,
-                // Pass template HTML for backend to use
                 html_template: getEmailTemplate({
                      name: document.getElementById('createName').value,
                      key: document.getElementById('createKey').value,
@@ -659,31 +632,12 @@
             };
 
             try {
-                if (USE_NETLIFY_BACKEND) {
-                    // API Call
-                    await callApi('POST', payload);
-                    Swal.fire('Success', 'License created via Backend!', 'success');
-                } else {
-                    // Firebase SDK Call
-                    const licensePath = `${DB_PATH}/${payload.key}`;
-                    await set(ref(db, licensePath), {
-                        status: 'active',
-                        type: payload.type, 
-                        deviceId: '', 
-                        expiryDate: payload.expiryDate, 
-                        name: payload.name, 
-                        email: payload.email,
-                        createdAt: Date.now()
-                    });
-                    
-                    // Client-side EmailJS
-                    if (payload.sendEmailCheck) {
-                        await sendEmailClientSide(payload);
-                    }
-                    Swal.fire('Success', 'License created via Client SDK!', 'success');
-                }
+                // Create via API
+                await callApi('POST', payload);
+                Swal.fire('Success', 'License created via Netlify Backend!', 'success');
+                
                 bootstrap.Modal.getInstance(document.getElementById('createModal')).hide();
-                if(USE_NETLIFY_BACKEND) fetchData(); // Refresh list if not realtime
+                fetchData();
             } catch (error) {
                 Swal.fire('Error', error.message, 'error');
             } finally {
@@ -702,18 +656,11 @@
             };
 
             try {
-                if (USE_NETLIFY_BACKEND) {
-                    await callApi('PUT', payload);
-                } else {
-                    await update(ref(db, `${DB_PATH}/${currentEditId}`), {
-                        status: payload.status,
-                        expiryDate: payload.expiryDate,
-                        deviceId: payload.deviceId
-                    });
-                }
+                // Update via API
+                await callApi('PUT', payload);
                 bootstrap.Modal.getInstance(document.getElementById('editModal')).hide();
                 Swal.fire('Updated', 'Data saved.', 'success');
-                if(USE_NETLIFY_BACKEND) fetchData();
+                fetchData();
             } catch (error) {
                 Swal.fire('Error', error.message, 'error');
             }
@@ -721,22 +668,15 @@
 
         window.deleteFunc = (id) => {
             Swal.fire({
-                title: 'Delete License?',
-                text: "Irreversible action!",
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#ef4444',
-                confirmButtonText: 'Yes, Kill it!'
+                title: 'Delete License?', text: "Irreversible action!", icon: 'warning',
+                showCancelButton: true, confirmButtonColor: '#ef4444', confirmButtonText: 'Yes, Kill it!'
             }).then(async (result) => {
                 if (result.isConfirmed) {
                     try {
-                        if (USE_NETLIFY_BACKEND) {
-                            await callApi('DELETE', null, `?id=${id}`);
-                        } else {
-                            await remove(ref(db, `${DB_PATH}/${id}`));
-                        }
+                        // Delete via API
+                        await callApi('DELETE', null, `?id=${id}`);
                         Swal.fire('Deleted!', 'License removed.', 'success');
-                        if(USE_NETLIFY_BACKEND) fetchData();
+                        fetchData();
                     } catch (e) {
                         Swal.fire('Error', e.message, 'error');
                     }
@@ -760,123 +700,16 @@
             `;
         };
         
-        const sendEmailClientSide = async (data) => {
-            // Reconstruct data for EmailJS format
-            // NOTE: This uses the function from previous turn, just simpler
-            console.log("Sending email via Client...", data.email);
-            // In production uncomment:
-            // await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, { ... });
-            return Promise.resolve(); 
-        };
-
-        // Global functions (Modal, etc)
-        window.openCreateModal = () => {
-            document.getElementById('createForm').reset();
-            window.generateRandomKey();
-            window.autoSetExpiry();
-            new bootstrap.Modal(document.getElementById('createModal')).show();
-        };
-
-        window.openEditFunc = (id) => {
-            const item = licensesData.find(x => x.id === id);
-            if (!item) return;
-            currentEditId = id;
-            document.getElementById('displayEditKey').innerText = item.key;
-            document.getElementById('editStatus').value = (item.status || 'active').charAt(0).toUpperCase() + (item.status || 'active').slice(1);
-            document.getElementById('editExpiry').value = item.expiryDate;
-            document.getElementById('editDeviceId').value = item.deviceId || '';
-            new bootstrap.Modal(document.getElementById('editModal')).show();
-        };
-
-        window.generateRandomKey = () => {
-            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-            const seg = () => Array(4).fill(0).map(() => chars.charAt(Math.floor(Math.random() * chars.length))).join('');
-            document.getElementById('createKey').value = `PRIMA-${seg()}-${seg()}-${seg()}`;
-        };
-
-        window.autoSetExpiry = () => {
-            const type = document.getElementById('createType').value.toLowerCase();
-            const dateInput = document.getElementById('createExpiry');
-            const today = new Date();
-            if (type === 'monthly') today.setMonth(today.getMonth() + 1);
-            else if (type === 'yearly') today.setFullYear(today.getFullYear() + 1);
-            else today.setFullYear(today.getFullYear() + 100);
-            dateInput.value = today.toISOString().split('T')[0];
-        };
-
+        window.openCreateModal = () => { document.getElementById('createForm').reset(); window.generateRandomKey(); window.autoSetExpiry(); new bootstrap.Modal(document.getElementById('createModal')).show(); };
+        window.openEditFunc = (id) => { const item = licensesData.find(x => x.id === id); if (!item) return; currentEditId = id; document.getElementById('displayEditKey').innerText = item.key; document.getElementById('editStatus').value = (item.status || 'active').charAt(0).toUpperCase() + (item.status || 'active').slice(1); document.getElementById('editExpiry').value = item.expiryDate; document.getElementById('editDeviceId').value = item.deviceId || ''; new bootstrap.Modal(document.getElementById('editModal')).show(); };
+        window.generateRandomKey = () => { const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'; const seg = () => Array(4).fill(0).map(() => chars.charAt(Math.floor(Math.random() * chars.length))).join(''); document.getElementById('createKey').value = `PRIMA-${seg()}-${seg()}-${seg()}`; };
+        window.autoSetExpiry = () => { const type = document.getElementById('createType').value.toLowerCase(); const dateInput = document.getElementById('createExpiry'); const today = new Date(); if (type === 'monthly') today.setMonth(today.getMonth() + 1); else if (type === 'yearly') today.setFullYear(today.getFullYear() + 1); else today.setFullYear(today.getFullYear() + 100); dateInput.value = today.toISOString().split('T')[0]; };
         window.resetDeviceLock = () => { document.getElementById('editDeviceId').value = ''; };
+        const updateStats = () => { document.getElementById('totalLicenses').innerText = licensesData.length; const activeCount = licensesData.filter(i => (i.status || '').toLowerCase() === 'active').length; document.getElementById('activeLicenses').innerText = activeCount; document.getElementById('expiredLicenses').innerText = licensesData.length - activeCount; };
+        window.renderTable = (data) => { const tbody = document.getElementById('licenseTableBody'); const emptyState = document.getElementById('emptyState'); tbody.innerHTML = ''; if (data.length === 0) { emptyState.classList.remove('d-none'); return; } emptyState.classList.add('d-none'); data.forEach(item => { const type = (item.type || '').toLowerCase(); let typeBadge = type === 'lifetime' ? '<span class="badge-custom badge-gold">Lifetime</span>' : type === 'yearly' ? '<span class="badge-custom badge-blue">Yearly</span>' : '<span class="badge-custom badge-green">Monthly</span>'; const status = (item.status || '').toLowerCase(); let statusClass = status === 'active' ? 'badge-status-active' : status === 'banned' ? 'badge-status-banned' : 'badge-status-expired'; const tr = document.createElement('tr'); tr.innerHTML = `<td><div class="license-key">${item.key}</div></td><td><div class="fw-bold text-dark">${item.name || '-'}</div><div class="small text-muted">${item.email || '-'}</div></td><td>${typeBadge}</td><td><span class="badge-custom ${statusClass}">${status}</span></td><td><span class="text-muted small">${item.deviceId ? item.deviceId.substring(0,8)+'...' : 'None'}</span></td><td class="small fw-bold text-secondary">${item.expiryDate || '-'}</td><td class="text-end"><button class="btn btn-action btn-edit" onclick="openEditFunc('${item.id}')"><i class="fa-solid fa-pen"></i></button><button class="btn btn-action btn-delete" onclick="deleteFunc('${item.id}')"><i class="fa-solid fa-trash-can"></i></button></td>`; tbody.appendChild(tr); }); };
+        window.fetchData = fetchData;
 
-        const updateStats = () => {
-            document.getElementById('totalLicenses').innerText = licensesData.length;
-            const activeCount = licensesData.filter(i => (i.status || '').toLowerCase() === 'active').length;
-            document.getElementById('activeLicenses').innerText = activeCount;
-            document.getElementById('expiredLicenses').innerText = licensesData.length - activeCount;
-        };
-        
-        window.renderTable = (data) => {
-            const tbody = document.getElementById('licenseTableBody');
-            const emptyState = document.getElementById('emptyState');
-            tbody.innerHTML = '';
-            if (data.length === 0) { emptyState.classList.remove('d-none'); return; }
-            emptyState.classList.add('d-none');
-
-            data.forEach(item => {
-                const type = (item.type || '').toLowerCase();
-                let typeBadge = type === 'lifetime' ? '<span class="badge-custom badge-gold">Lifetime</span>' : type === 'yearly' ? '<span class="badge-custom badge-blue">Yearly</span>' : '<span class="badge-custom badge-green">Monthly</span>';
-                const status = (item.status || '').toLowerCase();
-                let statusClass = status === 'active' ? 'badge-status-active' : status === 'banned' ? 'badge-status-banned' : 'badge-status-expired';
-                
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td><div class="license-key">${item.key}</div></td>
-                    <td>
-                        <div class="fw-bold text-dark">${item.name || '-'}</div>
-                        <div class="small text-muted">${item.email || '-'}</div>
-                    </td>
-                    <td>${typeBadge}</td>
-                    <td><span class="badge-custom ${statusClass}">${status}</span></td>
-                    <td><span class="text-muted small">${item.deviceId ? item.deviceId.substring(0,8)+'...' : 'None'}</span></td>
-                    <td class="small fw-bold text-secondary">${item.expiryDate || '-'}</td>
-                    <td class="text-end">
-                        <button class="btn btn-action btn-edit" onclick="openEditFunc('${item.id}')"><i class="fa-solid fa-pen"></i></button>
-                        <button class="btn btn-action btn-delete" onclick="deleteFunc('${item.id}')"><i class="fa-solid fa-trash-can"></i></button>
-                    </td>
-                `;
-                tbody.appendChild(tr);
-            });
-        };
-        
-        window.fetchData = fetchData; // Expose for refresh button
-
-        // Init
-        const init = () => {
-            try { emailjs.init(EMAILJS_PUBLIC_KEY); } catch (e) {}
-            
-            // UI Status
-            document.getElementById('backendStatusBadge').innerText = USE_NETLIFY_BACKEND 
-                ? "Running: Backend Mode (Netlify)" 
-                : "Running: Client Mode (Direct Firebase)";
-            document.getElementById('backendStatusBadge').className = USE_NETLIFY_BACKEND
-                ? "badge bg-success mt-2"
-                : "badge bg-warning text-dark mt-2";
-
-            setInterval(() => {
-                const now = new Date();
-                document.getElementById('clock').innerText = now.toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'});
-            }, 1000);
-
-            onAuthStateChanged(auth, (user) => {
-                if (user) {
-                    loginSection.classList.add('d-none');
-                    dashboardSection.classList.remove('d-none');
-                    setupRealtimeListener();
-                } else {
-                    loginSection.classList.remove('d-none');
-                    dashboardSection.classList.add('d-none');
-                    loadingOverlay.style.display = 'none';
-                }
-            });
-        };
+        // Start
         init();
     </script>
 </body>
