@@ -33,13 +33,20 @@ const respond = (statusCode, body) => {
 };
 
 // --- 3. HELPER: EMAILJS VIA API ---
+// --- 3. HELPER: EMAILJS VIA API (REVISI JUJUR) ---
 const sendEmail = async (data) => {
   const url = 'https://api.emailjs.com/api/v1.0/email/send';
+  
+  // Pastiin env var lu bener, kalau undefined mending errorin sekalian
+  if (!process.env.EMAILJS_SERVICE_ID || !process.env.EMAILJS_PRIVATE_KEY) {
+     throw new Error("ENV Variable EmailJS belum di-set di Netlify!");
+  }
+
   const payload = {
     service_id: process.env.EMAILJS_SERVICE_ID,
     template_id: process.env.EMAILJS_TEMPLATE_ID,
-    user_id: process.env.EMAILJS_PUBLIC_KEY, // Public Key
-    accessToken: process.env.EMAILJS_PRIVATE_KEY, // Private Key (Optional but Secure)
+    user_id: process.env.EMAILJS_PUBLIC_KEY, 
+    accessToken: process.env.EMAILJS_PRIVATE_KEY,
     template_params: {
       to_email: data.email,
       to_name: data.name,
@@ -50,16 +57,21 @@ const sendEmail = async (data) => {
     }
   };
 
-  try {
-    await fetch(url, {
+  // Hapus try-catch disini, biar error-nya naik ke atas (Handler utama)
+  const response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
-    });
-    console.log("Email sent to", data.email);
-  } catch (e) {
-    console.error("EmailJS Error:", e);
+  });
+
+  // Cek HTTP Status dari EmailJS
+  if (!response.ok) {
+      const text = await response.text();
+      // Lempar error biar ditangkep sama Handler utama
+      throw new Error(`EmailJS Gagal: ${response.status} - ${text}`);
   }
+  
+  console.log("Email sent successfully to", data.email);
 };
 
 // --- 4. MAIN HANDLER ---
