@@ -481,9 +481,8 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        // NOTE: Kita tidak butuh SDK Database di Frontend karena kita 100% pake API Netlify
         
-        // --- CONFIG FIREBASE CLIENT SIDE (WAJIB ADA & AMAN UNTUK PUBLIK) ---
+        // --- CONFIG FIREBASE ---
         const firebaseConfig = {
             apiKey: "AIzaSyBB3BJbwwV7Qo_2LIDQn5DYwebs_NxDocE", 
             authDomain: "strukmaker-3327d110.firebaseapp.com",
@@ -493,14 +492,11 @@
             appId: "1:486037943823:web:cb353cbb995ece5f41957a"
         };
         
-        // Init
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
-        
-        // Backend URL (Otomatis detect local vs production)
         const API_URL = '/api/licenses'; 
 
-        // UI
+        // UI References
         const loadingOverlay = document.getElementById('loadingOverlay');
         const loginSection = document.getElementById('loginSection');
         const dashboardSection = document.getElementById('dashboardSection');
@@ -509,7 +505,29 @@
         let licensesData = [];
         let currentEditId = null;
 
-        // --- AUTH ---
+        // --- 1. THE GAME CHANGER: AUTH LISTENER ---
+        // Ini pengganti init() lu yang error. Ini bakal jalan otomatis tiap status login berubah.
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                console.log("User logged in:", user.email);
+                // Sembunyikan Login, Munculkan Dashboard
+                loginSection.style.display = 'none'; // Paksa hide pake style inline biar paten
+                dashboardSection.classList.remove('d-none');
+                
+                // Load Data
+                fetchData();
+            } else {
+                console.log("User logged out.");
+                // Munculkan Login, Sembunyikan Dashboard
+                loginSection.style.display = 'flex'; // Balikin jadi flex biar di tengah
+                dashboardSection.classList.add('d-none');
+                
+                // Matiin loading kalau user baru buka web dan ternyata belum login
+                loadingOverlay.style.display = 'none';
+            }
+        });
+
+        // --- AUTH ACTIONS ---
         window.handleLogin = async (e) => {
             e.preventDefault();
             const email = document.getElementById('loginEmail').value;
@@ -522,14 +540,14 @@
 
             try {
                 await signInWithEmailAndPassword(auth, email, password);
-                Swal.fire({ icon: 'success', title: 'Welcome Boss!', timer: 1500, showConfirmButton: false });
+                // Gak perlu code lain, onAuthStateChanged bakal nangkep perubahannya otomatis
+                Swal.fire({ icon: 'success', title: 'Welcome Boss!', timer: 1000, showConfirmButton: false });
             } catch (error) {
-                // Auto Register Logic
                 if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
-                    try {
-                        console.log("Auto-registering admin...");
+                    // Logic Auto-Register lu (Hati-hati, ini berarti SIAPAPUN bisa jadi admin kalo tau emailnya)
+                     try {
                         await createUserWithEmailAndPassword(auth, email, password);
-                        Swal.fire({ icon: 'success', title: 'Akun Dibuat & Login', timer: 1500, showConfirmButton: false });
+                        Swal.fire({ icon: 'success', title: 'Akun Dibuat & Login', timer: 1000, showConfirmButton: false });
                     } catch (regError) {
                         Swal.fire('Failed', regError.message, 'error');
                     }
@@ -544,12 +562,14 @@
 
         window.handleLogout = async () => {
             await signOut(auth);
+            // onAuthStateChanged akan otomatis ngelempar ke halaman login
             Swal.fire('Logged Out', 'See you!', 'success');
         };
 
-        // --- BACKEND API HELPER ---
+        // --- API HELPER ---
         const callApi = async (method, body = null, queryString = '') => {
             if (!auth.currentUser) throw new Error("Not logged in");
+            // Selalu ambil token segar dari Firebase
             const token = await auth.currentUser.getIdToken();
             
             const options = {
@@ -575,28 +595,19 @@
             return res.json();
         };
 
-        // --- CORE LOGIC (BACKEND ONLY) ---
+        // --- DATA FETCHING ---
         const fetchData = async () => {
-            // Safety timeout
-            const safetyTimeout = setTimeout(() => {
-                if(loadingOverlay.style.display !== 'none') {
-                    document.getElementById('loadingText').innerText = "Koneksi lambat atau backend error...";
-                    document.getElementById('forceCloseLoading').classList.remove('d-none');
-                }
-            }, 8000);
-
+            // Nyalain loading pas mau fetch
+            loadingOverlay.style.display = 'flex';
+            
             try {
-                // Selalu ambil dari API Netlify
                 const data = await callApi('GET');
                 processData(data); 
             } catch (e) {
                 console.error("API Fetch Error:", e);
-                let msg = e.message;
-                if (msg.includes("404")) msg = "Backend 404 (File netlify.toml hilang?)";
-                if (msg.includes("500")) msg = "Backend Error 500 (Environment Variables Netlify Kosong/Salah?)";
-                Swal.fire('API Error', msg, 'error');
+                Swal.fire('API Error', e.message, 'error');
             } finally {
-                clearTimeout(safetyTimeout);
+                // MATIIN LOADING DISINI (PENTING!)
                 loadingOverlay.style.display = 'none';
             }
         };
@@ -709,30 +720,6 @@
         window.renderTable = (data) => { const tbody = document.getElementById('licenseTableBody'); const emptyState = document.getElementById('emptyState'); tbody.innerHTML = ''; if (data.length === 0) { emptyState.classList.remove('d-none'); return; } emptyState.classList.add('d-none'); data.forEach(item => { const type = (item.type || '').toLowerCase(); let typeBadge = type === 'lifetime' ? '<span class="badge-custom badge-gold">Lifetime</span>' : type === 'yearly' ? '<span class="badge-custom badge-blue">Yearly</span>' : '<span class="badge-custom badge-green">Monthly</span>'; const status = (item.status || '').toLowerCase(); let statusClass = status === 'active' ? 'badge-status-active' : status === 'banned' ? 'badge-status-banned' : 'badge-status-expired'; const tr = document.createElement('tr'); tr.innerHTML = `<td><div class="license-key">${item.key}</div></td><td><div class="fw-bold text-dark">${item.name || '-'}</div><div class="small text-muted">${item.email || '-'}</div></td><td>${typeBadge}</td><td><span class="badge-custom ${statusClass}">${status}</span></td><td><span class="text-muted small">${item.deviceId ? item.deviceId.substring(0,8)+'...' : 'None'}</span></td><td class="small fw-bold text-secondary">${item.expiryDate || '-'}</td><td class="text-end"><button class="btn btn-action btn-edit" onclick="openEditFunc('${item.id}')"><i class="fa-solid fa-pen"></i></button><button class="btn btn-action btn-delete" onclick="deleteFunc('${item.id}')"><i class="fa-solid fa-trash-can"></i></button></td>`; tbody.appendChild(tr); }); };
         window.fetchData = fetchData;
 
-        const init = () => {
-            console.log('Aplikasi com.primadev.strukapp starting...');
-            const token = localStorage.getItem('token'); 
-
-            if (!token) {
-                console.warn('Belum login nih, bos. Munculin modal login dulu.');
-                
-                // --- CEK DULU ADA GAK BARANGNYA ---
-                const modalElement = document.getElementById('loginModal');
-                console.log('Modal Element ditemukan?', modalElement); // <-- Liat ini di console!
-
-                if (modalElement) {
-                    new bootstrap.Modal(modalElement).show(); 
-                } else {
-                    console.error("WOY WISNU! Elemen id='loginModal' GAK ADA di HTML! Cek spelling lu!");
-                    alert("Error: Login modal not found. Check Console.");
-                }
-            } else {
-                fetchData();
-                updateStats();
-            }
-        };
-
-        init();
     </script>
 </body>
 </html>
