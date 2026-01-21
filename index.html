@@ -483,23 +483,21 @@
         import { getDatabase, ref, push, set, onValue, update, remove, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
 
         // --- PENTING UNTUK WISNU ---
-        // UBAH value ini jadi TRUE kalau lo udah deploy Backend ke Netlify
-        // Kalau masih di preview Canvas, biarin FALSE biar gak error 404.
-        const USE_NETLIFY_BACKEND = false; 
+        const USE_NETLIFY_BACKEND = true; 
 
         // Config
         const firebaseConfig = {
-            apiKey: "AIzaSyBB3BJbwwV7Qo_2LIDQn5DYwebs_NxDocE",
+            apiKey: process.env.FIREBASE_API_KEY,
             authDomain: "strukmaker-3327d110.firebaseapp.com",
-            databaseURL: "https://strukmaker-3327d110-default-rtdb.asia-southeast1.firebasedatabase.app",
+            databaseURL: process.env.FIREBASE_DATABASE_URL,
             projectId: "strukmaker-3327d110",
             storageBucket: "strukmaker-3327d110.firebasestorage.app",
             messagingSenderId: "486037943823",
             appId: "1:486037943823:web:cb353cbb995ece5f41957a"
         };
-        const EMAILJS_PUBLIC_KEY = "wdPfGfCEqPUcQiNxF"; 
-        const EMAILJS_SERVICE_ID = "service_atsykkw";         
-        const EMAILJS_TEMPLATE_ID = "template_2fwj3wj";
+        const EMAILJS_PUBLIC_KEY = process.env.EMAILJS_PUBLIC_KEY; 
+        const EMAILJS_SERVICE_ID = process.env.EMAILJS_SERVICE_ID;         
+        const EMAILJS_TEMPLATE_ID = process.env.EMAILJS_TEMPLATE_ID;
 
         // Init
         const app = initializeApp(firebaseConfig);
