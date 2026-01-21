@@ -709,6 +709,14 @@
         window.renderTable = (data) => { const tbody = document.getElementById('licenseTableBody'); const emptyState = document.getElementById('emptyState'); tbody.innerHTML = ''; if (data.length === 0) { emptyState.classList.remove('d-none'); return; } emptyState.classList.add('d-none'); data.forEach(item => { const type = (item.type || '').toLowerCase(); let typeBadge = type === 'lifetime' ? '<span class="badge-custom badge-gold">Lifetime</span>' : type === 'yearly' ? '<span class="badge-custom badge-blue">Yearly</span>' : '<span class="badge-custom badge-green">Monthly</span>'; const status = (item.status || '').toLowerCase(); let statusClass = status === 'active' ? 'badge-status-active' : status === 'banned' ? 'badge-status-banned' : 'badge-status-expired'; const tr = document.createElement('tr'); tr.innerHTML = `<td><div class="license-key">${item.key}</div></td><td><div class="fw-bold text-dark">${item.name || '-'}</div><div class="small text-muted">${item.email || '-'}</div></td><td>${typeBadge}</td><td><span class="badge-custom ${statusClass}">${status}</span></td><td><span class="text-muted small">${item.deviceId ? item.deviceId.substring(0,8)+'...' : 'None'}</span></td><td class="small fw-bold text-secondary">${item.expiryDate || '-'}</td><td class="text-end"><button class="btn btn-action btn-edit" onclick="openEditFunc('${item.id}')"><i class="fa-solid fa-pen"></i></button><button class="btn btn-action btn-delete" onclick="deleteFunc('${item.id}')"><i class="fa-solid fa-trash-can"></i></button></td>`; tbody.appendChild(tr); }); };
         window.fetchData = fetchData;
 
+        const init = () => {
+            console.log('Aplikasi com.primadev.strukapp starting...');
+            // Biasanya sih lu mau load data pas awal kan?
+            fetchData(); 
+            // Atau update stats dummy kalo data belum ada
+            updateStats();
+        };
+
         // Start
         init();
     </script>
