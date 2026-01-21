@@ -718,7 +718,7 @@
             if (!token) {
                 console.warn('Belum login nih, bos. Munculin modal login dulu.');
                 // JANGAN panggil fetchData().
-                new bootstrap.Modal(document.getElementById('loginModal')).show(); 
+                new bootstrap.Modal(document.getElementById('loginSection')).show(); 
             } else {
                 // Nah, kalau ada token, baru boleh ambil data
                 fetchData();
