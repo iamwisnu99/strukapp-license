@@ -72,6 +72,15 @@
             font-size: 1.5rem;
         }
 
+        @keyframes blinker {
+            50% { opacity: 0; }
+        }
+        .blink {
+            animation: blinker 1s linear infinite;
+            font-weight: bold;
+            margin: 0 2px;
+        }
+
         .stat-card {
             background: #fff;
             border: 1px solid #e2e8f0;
@@ -198,10 +207,10 @@
     <div id="loginSection">
         <div class="login-card text-center">
             <div class="mb-4">
-                <i class="fa-solid fa-shield-halved text-primary" style="font-size: 3.5rem;"></i>
+                <img src="https://freeimage.host/i/frvaLe1" alt="PrimaDev Logo" width="100" class="mb-2">
             </div>
             <h3 class="fw-bold mb-1">Welcome Back, Wisnu!</h3>
-            <p class="text-muted mb-4 small">Silakan login untuk mengakses dashboard sakral ini.</p>
+            <p class="text-muted mb-4 small">Silakan login untuk mengakses dashboard ini.</p>
             
             <form id="loginForm" onsubmit="handleLogin(event)">
                 <div class="form-floating mb-3 text-start">
@@ -218,9 +227,6 @@
                     </button>
                 </div>
             </form>
-            <div class="mt-4 pt-3 border-top">
-                <p class="small text-muted mb-0">Lupa password? Ya nasib. Hubungi database.</p>
-            </div>
         </div>
     </div>
 
@@ -229,8 +235,10 @@
         <!-- Navbar -->
         <nav class="navbar navbar-expand-lg sticky-top">
             <div class="container">
-                <a class="navbar-brand" href="#">
-                    <i class="fa-solid fa-layer-group me-2"></i>PrimaDev<span class="text-dark">Admin</span>
+                <a class="navbar-brand d-flex align-items-center" href="#">
+                    <img src="https://freeimage.host/i/frvaLe1" alt="Logo" width="40" height="40" class="me-2 rounded">
+                    
+                    <span>PrimaDev<span class="text-dark">Admin</span></span>
                 </a>
                 <button class="btn btn-light btn-sm text-danger fw-bold ms-auto" onclick="handleLogout()">
                     <i class="fa-solid fa-power-off me-2"></i>Logout
@@ -245,7 +253,7 @@
             <div class="d-flex justify-content-between align-items-end mb-4">
                 <div>
                     <h2 class="fw-bold mb-1 text-dark">License Manager</h2>
-                    <p class="text-muted mb-0">Control panel for <strong>com.primadev.strukapp</strong></p>
+                    <p class="text-muted mb-0">Control panel for <strong>SPBU Struk</strong></p>
                     <span class="badge bg-success mt-2" id="backendStatusBadge">Secured by Netlify Functions</span>
                 </div>
                 <div class="d-none d-md-block">
@@ -333,7 +341,7 @@
                         <i class="fa-solid fa-folder-open text-muted opacity-25" style="font-size: 4rem;"></i>
                     </div>
                     <h5 class="fw-bold text-muted">Data Kosong Melompong</h5>
-                    <p class="text-muted small">Belum ada korban... eh, customer.</p>
+                    <p class="text-muted small">Belum ada customer.</p>
                 </div>
             </div>
         </div>
@@ -570,11 +578,8 @@
                             Swal.showLoading();
                         }
                     }).then(async () => {
-                        // 2. Baru beneran logout dari Firebase
                         await signOut(auth);
-                        
-                        // onAuthStateChanged bakal otomatis mindahin halaman, 
-                        // tapi karena udah ada jeda Swal, rasanya bakal lebih smooth.
+
                     });
                 }
             });
@@ -583,7 +588,6 @@
         // --- API HELPER ---
         const callApi = async (method, body = null, queryString = '') => {
             if (!auth.currentUser) throw new Error("Not logged in");
-            // Selalu ambil token segar dari Firebase
             const token = await auth.currentUser.getIdToken();
             
             const options = {
@@ -628,12 +632,10 @@
             `;
             
             try {
-                // Ambil data (Loading spinner di tabel tetep muter)
                 const data = await callApi('GET');
                 processData(data); 
             } catch (e) {
                 console.error("API Fetch Error:", e);
-                // Kalau error, kasih tau di dalem tabel juga biar rapi
                 tbody.innerHTML = `
                     <tr>
                         <td colspan="7" class="text-center py-5 text-danger">
@@ -681,7 +683,7 @@
             try {
                 // Create via API
                 await callApi('POST', payload);
-                Swal.fire('Success', 'License created via Netlify Backend!', 'success');
+                Swal.fire('Success', 'License created and saved to database', 'success');
                 
                 bootstrap.Modal.getInstance(document.getElementById('createModal')).hide();
                 fetchData();
@@ -716,7 +718,7 @@
         window.deleteFunc = (id) => {
             Swal.fire({
                 title: 'Delete License?', text: "Irreversible action!", icon: 'warning',
-                showCancelButton: true, confirmButtonColor: '#ef4444', confirmButtonText: 'Yes, Kill it!'
+                showCancelButton: true, confirmButtonColor: '#ef4444', confirmButtonText: 'Yes, Delete it!'
             }).then(async (result) => {
                 if (result.isConfirmed) {
                     try {
@@ -750,8 +752,10 @@
                                     
                                     <tr>
                                         <td style="background-color: #4f46e5; padding: 30px; text-align: center;">
-                                            <h1 style="color: #ffffff; margin: 0; font-size: 24px; letter-spacing: 1px;">PRIMADEV</h1>
-                                            <p style="color: #e0e7ff; margin: 5px 0 0 0; font-size: 14px;">License SPBU Struk</p>
+                                            <img src="https://freeimage.host/i/frvaLe1" alt="PrimaDev Logo" width="120" style="display: block; margin: 0 auto 15px auto; border: 0;">
+                                            
+                                            <h1 style="color: #ffffff; margin: 0; font-size: 24px; letter-spacing: 1px;">SPBU Struk</h1>
+                                            <p style="color: #e0e7ff; margin: 5px 0 0 0; font-size: 14px;">Official Lisensi</p>
                                         </td>
                                     </tr>
 
@@ -806,10 +810,6 @@
                                         </td>
                                     </tr>
                                 </table>
-                                
-                                <p style="text-align: center; margin-top: 20px; color: #9ca3af; font-size: 12px;">
-                                    <a href="#" style="color: #9ca3af; text-decoration: underline;">Unsubscribe</a> if you want to stop receiving updates.
-                                </p>
 
                             </td>
                         </tr>
@@ -818,6 +818,29 @@
                 </html>
             `;
         };
+
+        const startRealtimeClock = () => {
+            const updateTime = () => {
+                const clockEl = document.getElementById('clock');
+                if (!clockEl) return;
+
+                const now = new Date();
+
+                const timeString = now.toLocaleTimeString('id-ID', {
+                    hour: '2-digit', 
+                    minute: '2-digit', 
+                    second: '2-digit'
+                });
+                
+                clockEl.innerHTML = timeString.replace(/:/g, '<span class="text-primary blink">:</span>');
+            };
+
+            updateTime();
+            setInterval(updateTime, 1000);
+        };
+        
+        // JALANIN MESIN WAKTUNYA!
+        startRealtimeClock();
         
         window.openCreateModal = () => { document.getElementById('createForm').reset(); window.generateRandomKey(); window.autoSetExpiry(); new bootstrap.Modal(document.getElementById('createModal')).show(); };
         window.openEditFunc = (id) => { const item = licensesData.find(x => x.id === id); if (!item) return; currentEditId = id; document.getElementById('displayEditKey').innerText = item.key; document.getElementById('editStatus').value = (item.status || 'active').charAt(0).toUpperCase() + (item.status || 'active').slice(1); document.getElementById('editExpiry').value = item.expiryDate; document.getElementById('editDeviceId').value = item.deviceId || ''; new bootstrap.Modal(document.getElementById('editModal')).show(); };
