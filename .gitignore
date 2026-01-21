@@ -1,0 +1,7 @@
+node_modules/
+.DS_Store
+.env
+strukmaker-3327d110-firebase-adminsdk-fbsvc-b196ef137f.json
+dist/
+.vscode/
+.idea/

@@ -1,0 +1,10 @@
+{
+  "name": "primadev-license-backend",
+  "version": "1.0.0",
+  "description": "Backend sakral punya Wisnu",
+  "main": "index.js",
+  "dependencies": {
+    "firebase-admin": "^11.11.1",
+    "node-fetch": "^2.7.0"
+  }
+}

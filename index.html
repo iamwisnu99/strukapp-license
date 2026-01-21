@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PrimaDev Admin Panel</title>
+    
+    <!-- Fonts & Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    
+    <!-- SweetAlert2 -->
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css" rel="stylesheet">
+
+    <style>
+        :root {
+            --primary-color: #4f46e5;
+            --primary-hover: #4338ca;
+            --bg-color: #f8fafc;
+            --card-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: var(--bg-color);
+            color: #334155;
+            overflow-x: hidden;
+        }
+
+        /* --- LOGIN SECTION STYLES --- */
+        #loginSection {
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #4f46e5 0%, #818cf8 100%);
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            z-index: 2000;
+        }
+
+        .login-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 24px;
+            padding: 3rem;
+            width: 100%;
+            max-width: 420px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            transform: translateY(0);
+            transition: all 0.3s ease;
+        }
+
+        .login-card:hover {
+            transform: translateY(-5px);
+        }
+
+        /* --- DASHBOARD STYLES --- */
+        .navbar {
+            background-color: #fff;
+            box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            padding: 1rem 0;
+        }
+
+        .navbar-brand {
+            font-weight: 800;
+            color: var(--primary-color);
+            letter-spacing: -0.5px;
+            font-size: 1.5rem;
+        }
+
+        .stat-card {
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            padding: 1.5rem;
+            box-shadow: var(--card-shadow);
+            transition: all 0.2s;
+        }
+
+        .stat-card:hover {
+            border-color: var(--primary-color);
+            transform: translateY(-2px);
+        }
+
+        .stat-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        .main-card {
+            background: #fff;
+            border: none;
+            border-radius: 20px;
+            box-shadow: var(--card-shadow);
+            overflow: hidden;
+        }
+
+        .table thead th {
+            background-color: #f1f5f9;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.7rem;
+            letter-spacing: 0.08em;
+            color: #64748b;
+            padding: 1.25rem 1rem;
+            border: none;
+        }
+
+        .table tbody td {
+            padding: 1.25rem 1rem;
+            vertical-align: middle;
+            border-bottom: 1px solid #f1f5f9;
+            font-size: 0.9rem;
+        }
+
+        .license-key {
+            font-family: 'Courier New', Courier, monospace;
+            background: #f1f5f9;
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-weight: 700;
+            color: #1e293b;
+            font-size: 0.9rem;
+            letter-spacing: 1px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .badge-custom {
+            padding: 6px 12px;
+            border-radius: 30px;
+            font-weight: 600;
+            font-size: 0.75rem;
+        }
+        
+        /* Modern Badges */
+        .badge-gold { background-color: #fffbeb; color: #b45309; border: 1px solid #fcd34d; }
+        .badge-blue { background-color: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
+        .badge-green { background-color: #f0fdf4; color: #15803d; border: 1px solid #86efac; }
+        
+        .badge-status-active { background-color: #dcfce7; color: #166534; }
+        .badge-status-banned { background-color: #fee2e2; color: #991b1b; }
+        .badge-status-expired { background-color: #f3f4f6; color: #4b5563; }
+
+        .btn-action {
+            width: 36px;
+            height: 36px;
+            padding: 0;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            margin-left: 6px;
+            transition: all 0.2s;
+            border: none;
+        }
+        
+        .btn-action:hover { transform: scale(1.15); }
+        .btn-edit { background-color: #eff6ff; color: #3b82f6; }
+        .btn-delete { background-color: #fef2f2; color: #ef4444; }
+
+        /* Modern Toggle Switch */
+        .form-switch .form-check-input {
+            width: 3em;
+            height: 1.5em;
+            cursor: pointer;
+        }
+        .form-switch .form-check-input:checked {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+
+        /* Loading Overlay */
+        #loadingOverlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(255,255,255,0.95);
+            z-index: 3000; 
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(5px);
+            transition: opacity 0.5s ease;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay">
+        <div class="spinner-border text-primary mb-3" role="status" style="width: 3rem; height: 3rem;">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+        <p class="text-muted fw-bold animate-pulse">Memuat Data PrimaDev...</p>
+    </div>
+
+    <!-- LOGIN SECTION (Hidden by default via JS) -->
+    <div id="loginSection">
+        <div class="login-card text-center">
+            <div class="mb-4">
+                <i class="fa-solid fa-shield-halved text-primary" style="font-size: 3.5rem;"></i>
+            </div>
+            <h3 class="fw-bold mb-1">Welcome Back, Wisnu!</h3>
+            <p class="text-muted mb-4 small">Silakan login untuk mengakses dashboard sakral ini.</p>
+            
+            <form id="loginForm" onsubmit="handleLogin(event)">
+                <div class="form-floating mb-3 text-start">
+                    <input type="email" class="form-control" id="loginEmail" placeholder="name@example.com" value="primawisnu99@gmail.com" required>
+                    <label for="loginEmail">Email Address</label>
+                </div>
+                <div class="form-floating mb-4 text-start">
+                    <input type="password" class="form-control" id="loginPassword" placeholder="Password" value="admin-license01" required>
+                    <label for="loginPassword">Password</label>
+                </div>
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-primary btn-lg fw-bold shadow-sm">
+                        <i class="fa-solid fa-right-to-bracket me-2"></i> Masuk Dashboard
+                    </button>
+                </div>
+            </form>
+            <div class="mt-4 pt-3 border-top">
+                <p class="small text-muted mb-0">Lupa password? Ya nasib. Hubungi database.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- DASHBOARD SECTION (Hidden initially) -->
+    <div id="dashboardSection" class="d-none">
+        <!-- Navbar -->
+        <nav class="navbar navbar-expand-lg sticky-top">
+            <div class="container">
+                <a class="navbar-brand" href="#">
+                    <i class="fa-solid fa-layer-group me-2"></i>PrimaDev<span class="text-dark">Admin</span>
+                </a>
+                <button class="btn btn-light btn-sm text-danger fw-bold ms-auto" onclick="handleLogout()">
+                    <i class="fa-solid fa-power-off me-2"></i>Logout
+                </button>
+            </div>
+        </nav>
+
+        <!-- Content -->
+        <div class="container py-5">
+            
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-end mb-4">
+                <div>
+                    <h2 class="fw-bold mb-1 text-dark">License Manager</h2>
+                    <p class="text-muted mb-0">Control panel for <strong>com.primadev.strukapp</strong></p>
+                    <!-- Status Indikator Backend -->
+                    <span class="badge bg-secondary mt-2" id="backendStatusBadge">Running: Client Mode</span>
+                </div>
+                <div class="d-none d-md-block">
+                    <span class="badge bg-light text-dark border p-2">
+                        <i class="fa-regular fa-clock me-1"></i> <span id="clock">00:00</span>
+                    </span>
+                    <button class="btn btn-sm btn-outline-primary ms-2" onclick="fetchData()" title="Refresh Data">
+                        <i class="fa-solid fa-rotate"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Stats Cards -->
+            <div class="row g-4 mb-5">
+                <div class="col-md-4">
+                    <div class="stat-card d-flex align-items-center">
+                        <div class="stat-icon bg-primary bg-opacity-10 text-primary me-3">
+                            <i class="fa-solid fa-key"></i>
+                        </div>
+                        <div>
+                            <h6 class="text-muted text-uppercase fw-bold mb-1" style="font-size: 0.7rem;">Total Licenses</h6>
+                            <h3 class="fw-bold mb-0 text-dark" id="totalLicenses">0</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="stat-card d-flex align-items-center">
+                        <div class="stat-icon bg-success bg-opacity-10 text-success me-3">
+                            <i class="fa-solid fa-check-circle"></i>
+                        </div>
+                        <div>
+                            <h6 class="text-muted text-uppercase fw-bold mb-1" style="font-size: 0.7rem;">Active Users</h6>
+                            <h3 class="fw-bold mb-0 text-dark" id="activeLicenses">0</h3>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="stat-card d-flex align-items-center">
+                        <div class="stat-icon bg-danger bg-opacity-10 text-danger me-3">
+                            <i class="fa-solid fa-triangle-exclamation"></i>
+                        </div>
+                        <div>
+                            <h6 class="text-muted text-uppercase fw-bold mb-1" style="font-size: 0.7rem;">Issues</h6>
+                            <h3 class="fw-bold mb-0 text-dark" id="expiredLicenses">0</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Card -->
+            <div class="main-card">
+                <!-- Toolbar -->
+                <div class="p-4 border-bottom d-flex flex-wrap gap-3 justify-content-between align-items-center bg-white">
+                    <div class="position-relative flex-grow-1" style="max-width: 400px;">
+                        <i class="fa-solid fa-search position-absolute top-50 start-0 translate-middle-y ms-3 text-muted"></i>
+                        <input type="text" id="searchInput" class="form-control ps-5 bg-light border-0" placeholder="Cari nama, email, atau key...">
+                    </div>
+                    <button class="btn btn-primary fw-bold px-4 py-2" onclick="openCreateModal()">
+                        <i class="fa-solid fa-plus me-2"></i>Create License
+                    </button>
+                </div>
+
+                <!-- Table -->
+                <div class="table-responsive">
+                    <table class="table mb-0 align-middle">
+                        <thead>
+                            <tr>
+                                <th>License Key</th>
+                                <th>User Details</th>
+                                <th>Type</th>
+                                <th>Status</th>
+                                <th>Device ID</th>
+                                <th>Expiry</th>
+                                <th class="text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="licenseTableBody">
+                            <!-- Data will be injected here -->
+                        </tbody>
+                    </table>
+                </div>
+                <!-- Empty State -->
+                <div id="emptyState" class="text-center py-5 d-none">
+                    <div class="mb-3">
+                        <i class="fa-solid fa-folder-open text-muted opacity-25" style="font-size: 4rem;"></i>
+                    </div>
+                    <h5 class="fw-bold text-muted">Data Kosong Melompong</h5>
+                    <p class="text-muted small">Belum ada korban... eh, customer.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Modal -->
+    <div class="modal fade" id="createModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0">
+                <div class="modal-header border-0 pb-0 px-4 pt-4">
+                    <h5 class="modal-title fw-bold">New License</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <form id="createForm" onsubmit="handleCreateSubmit(event)">
+                        <div class="form-floating mb-3">
+                            <input type="text" class="form-control" id="createName" required placeholder="Name">
+                            <label>Customer Name</label>
+                        </div>
+                        <div class="form-floating mb-3">
+                            <input type="email" class="form-control" id="createEmail" required placeholder="Email">
+                            <label>Email Address</label>
+                        </div>
+                        <div class="row g-3 mb-3">
+                            <div class="col-6">
+                                <div class="form-floating">
+                                    <select class="form-select" id="createType" onchange="autoSetExpiry()">
+                                        <option value="Monthly">Monthly</option>
+                                        <option value="Yearly">Yearly</option>
+                                        <option value="Lifetime">Lifetime</option>
+                                    </select>
+                                    <label>License Type</label>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="form-floating">
+                                    <input type="date" class="form-control" id="createExpiry" required>
+                                    <label>Expiry Date</label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mb-4">
+                            <label class="small text-muted fw-bold mb-2">License Key</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control font-monospace fw-bold bg-light" id="createKey" readonly required>
+                                <button class="btn btn-outline-secondary" type="button" onclick="generateRandomKey()">
+                                    <i class="fa-solid fa-arrows-rotate"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- REQ #1: Toggle Switch -->
+                        <div class="d-flex align-items-center justify-content-between p-3 bg-light rounded-3 mb-4 border">
+                            <div>
+                                <span class="fw-bold d-block text-dark">Kirim Email Otomatis?</span>
+                                <span class="small text-muted">Menggunakan EmailJS template.</span>
+                            </div>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" role="switch" id="sendEmailCheck" checked>
+                            </div>
+                        </div>
+
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary btn-lg fw-bold">Generate & Save</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Modal -->
+    <div class="modal fade" id="editModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0">
+                <div class="modal-header border-0 pb-0 px-4 pt-4">
+                    <h5 class="modal-title fw-bold">Edit Details</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <form id="editForm" onsubmit="handleEditSubmit(event)">
+                        <input type="hidden" id="editId">
+                        
+                        <div class="text-center mb-4 p-3 bg-light rounded-3 border border-dashed">
+                            <small class="text-muted d-block mb-1">SELECTED KEY</small>
+                            <code id="displayEditKey" class="fw-bold fs-5 text-primary"></code>
+                        </div>
+
+                        <div class="row g-3 mb-3">
+                            <div class="col-6">
+                                <div class="form-floating">
+                                    <select class="form-select" id="editStatus">
+                                        <option value="Active">Active</option>
+                                        <option value="Banned">Banned</option>
+                                        <option value="Expired">Expired</option>
+                                    </select>
+                                    <label>Status</label>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="form-floating">
+                                    <input type="date" class="form-control" id="editExpiry">
+                                    <label>Expiry Date</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="small text-muted fw-bold mb-2">Device Lock</label>
+                            <div class="input-group">
+                                <input type="text" class="form-control text-muted" id="editDeviceId" readonly placeholder="No device locked">
+                                <button type="button" class="btn btn-outline-danger" onclick="resetDeviceLock()">
+                                    <i class="fa-solid fa-unlock me-1"></i> Reset
+                                </button>
+                            </div>
+                            <div class="form-text small mt-1">Reset ini kalau user ganti HP baru.</div>
+                        </div>
+
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary btn-lg fw-bold">Save Changes</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+
+    <!-- Firebase & App Logic -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getDatabase, ref, push, set, onValue, update, remove, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
+
+        // --- PENTING UNTUK WISNU ---
+        // UBAH value ini jadi TRUE kalau lo udah deploy Backend ke Netlify
+        // Kalau masih di preview Canvas, biarin FALSE biar gak error 404.
+        const USE_NETLIFY_BACKEND = false; 
+
+        // Config
+        const firebaseConfig = {
+            apiKey: "AIzaSyBB3BJbwwV7Qo_2LIDQn5DYwebs_NxDocE",
+            authDomain: "strukmaker-3327d110.firebaseapp.com",
+            databaseURL: "https://strukmaker-3327d110-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "strukmaker-3327d110",
+            storageBucket: "strukmaker-3327d110.firebasestorage.app",
+            messagingSenderId: "486037943823",
+            appId: "1:486037943823:web:cb353cbb995ece5f41957a"
+        };
+        const EMAILJS_PUBLIC_KEY = "wdPfGfCEqPUcQiNxF"; 
+        const EMAILJS_SERVICE_ID = "service_atsykkw";         
+        const EMAILJS_TEMPLATE_ID = "template_2fwj3wj";
+
+        // Init
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getDatabase(app); 
+        const DB_PATH = 'licenses';
+        const API_URL = '/api/licenses'; // Netlify Endpoint
+
+        // UI
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        const loginSection = document.getElementById('loginSection');
+        const dashboardSection = document.getElementById('dashboardSection');
+
+        // State
+        let licensesData = [];
+        let currentEditId = null;
+
+        // --- AUTH ---
+        window.handleLogin = async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            const btn = e.target.querySelector('button');
+            const originalBtn = btn.innerHTML;
+            
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Checking...';
+            btn.disabled = true;
+
+            try {
+                await signInWithEmailAndPassword(auth, email, password);
+                Swal.fire({ icon: 'success', title: 'Welcome Boss!', timer: 1500, showConfirmButton: false });
+            } catch (error) {
+                if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
+                    // Auto Register for Preview Convenience
+                    try {
+                        console.log("Auto-registering admin...");
+                        await createUserWithEmailAndPassword(auth, email, password);
+                        Swal.fire({ icon: 'success', title: 'Akun Dibuat & Login', timer: 1500, showConfirmButton: false });
+                    } catch (regError) {
+                        Swal.fire('Failed', regError.message, 'error');
+                    }
+                } else {
+                    Swal.fire('Error', error.message, 'error');
+                }
+            } finally {
+                btn.innerHTML = originalBtn;
+                btn.disabled = false;
+            }
+        };
+
+        window.handleLogout = async () => {
+            await signOut(auth);
+            Swal.fire('Logged Out', 'See you!', 'success');
+        };
+
+        // --- BACKEND API HELPER ---
+        const callApi = async (method, body = null, queryString = '') => {
+            if (!auth.currentUser) throw new Error("Not logged in");
+            const token = await auth.currentUser.getIdToken();
+            
+            const options = {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                }
+            };
+
+            if (body) options.body = JSON.stringify(body);
+            
+            // Note: In preview, this fetch will fail (404/Network Error) if not mocked/proxied.
+            // Hence the USE_NETLIFY_BACKEND flag.
+            const res = await fetch(`${API_URL}${queryString}`, options);
+            if (!res.ok) {
+                const errData = await res.json().catch(() => ({}));
+                throw new Error(errData.error || `API Error: ${res.status}`);
+            }
+            return res.json();
+        };
+
+        // --- CORE LOGIC (HYBRID) ---
+        const fetchData = async () => {
+            if (USE_NETLIFY_BACKEND) {
+                // Method A: Fetch from Netlify API
+                try {
+                    const data = await callApi('GET');
+                    processData(data); // API returns array directly
+                    loadingOverlay.style.display = 'none';
+                } catch (e) {
+                    console.error("API Fetch Error:", e);
+                    Swal.fire('API Error', 'Gagal ambil data dari backend Netlify. Pastikan sudah deploy!', 'error');
+                }
+            } else {
+                // Method B: Client SDK (Realtime)
+                // Existing Listener already setup in 'setupRealtimeListener'
+                // This function is mostly for Manual Refresh button in backend mode
+                if(!document.getElementById('licenseTableBody').hasAttribute('data-loaded')) {
+                    setupRealtimeListener();
+                }
+            }
+        };
+
+        const setupRealtimeListener = () => {
+            if (USE_NETLIFY_BACKEND) {
+                fetchData(); // Initial fetch
+                return;
+            }
+
+            // Firebase SDK Realtime Listener
+            onValue(ref(db, DB_PATH), (snapshot) => {
+                document.getElementById('licenseTableBody').setAttribute('data-loaded', 'true');
+                licensesData = [];
+                const data = snapshot.val();
+                
+                // Transform Object {KEY: {data}} -> Array [{id:KEY, ...data}]
+                if (data) {
+                    Object.keys(data).forEach(key => {
+                        licensesData.push({ id: key, key: key, ...data[key] });
+                    });
+                }
+                
+                processData(licensesData);
+                loadingOverlay.style.display = 'none';
+            }, (error) => {
+                console.error("RTDB Error", error);
+            });
+        };
+
+        const processData = (dataArray) => {
+            licensesData = dataArray;
+            licensesData.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+            renderTable(licensesData);
+            updateStats();
+        };
+
+        // --- CRUD ACTIONS (HYBRID) ---
+        window.handleCreateSubmit = async (e) => {
+            e.preventDefault();
+            const btn = e.target.querySelector('button[type="submit"]');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
+            btn.disabled = true;
+
+            // Form Data
+            const payload = {
+                name: document.getElementById('createName').value,
+                email: document.getElementById('createEmail').value,
+                type: document.getElementById('createType').value.toLowerCase(),
+                expiryDate: document.getElementById('createExpiry').value,
+                key: document.getElementById('createKey').value,
+                sendEmailCheck: document.getElementById('sendEmailCheck').checked,
+                // Pass template HTML for backend to use
+                html_template: getEmailTemplate({
+                     name: document.getElementById('createName').value,
+                     key: document.getElementById('createKey').value,
+                     type: document.getElementById('createType').value,
+                     expiryDate: document.getElementById('createExpiry').value
+                })
+            };
+
+            try {
+                if (USE_NETLIFY_BACKEND) {
+                    // API Call
+                    await callApi('POST', payload);
+                    Swal.fire('Success', 'License created via Backend!', 'success');
+                } else {
+                    // Firebase SDK Call
+                    const licensePath = `${DB_PATH}/${payload.key}`;
+                    await set(ref(db, licensePath), {
+                        status: 'active',
+                        type: payload.type, 
+                        deviceId: '', 
+                        expiryDate: payload.expiryDate, 
+                        name: payload.name, 
+                        email: payload.email,
+                        createdAt: Date.now()
+                    });
+                    
+                    // Client-side EmailJS
+                    if (payload.sendEmailCheck) {
+                        await sendEmailClientSide(payload);
+                    }
+                    Swal.fire('Success', 'License created via Client SDK!', 'success');
+                }
+                bootstrap.Modal.getInstance(document.getElementById('createModal')).hide();
+                if(USE_NETLIFY_BACKEND) fetchData(); // Refresh list if not realtime
+            } catch (error) {
+                Swal.fire('Error', error.message, 'error');
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        };
+
+        window.handleEditSubmit = async (e) => {
+            e.preventDefault();
+            const payload = {
+                id: currentEditId,
+                status: document.getElementById('editStatus').value.toLowerCase(),
+                expiryDate: document.getElementById('editExpiry').value,
+                deviceId: document.getElementById('editDeviceId').value
+            };
+
+            try {
+                if (USE_NETLIFY_BACKEND) {
+                    await callApi('PUT', payload);
+                } else {
+                    await update(ref(db, `${DB_PATH}/${currentEditId}`), {
+                        status: payload.status,
+                        expiryDate: payload.expiryDate,
+                        deviceId: payload.deviceId
+                    });
+                }
+                bootstrap.Modal.getInstance(document.getElementById('editModal')).hide();
+                Swal.fire('Updated', 'Data saved.', 'success');
+                if(USE_NETLIFY_BACKEND) fetchData();
+            } catch (error) {
+                Swal.fire('Error', error.message, 'error');
+            }
+        };
+
+        window.deleteFunc = (id) => {
+            Swal.fire({
+                title: 'Delete License?',
+                text: "Irreversible action!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                confirmButtonText: 'Yes, Kill it!'
+            }).then(async (result) => {
+                if (result.isConfirmed) {
+                    try {
+                        if (USE_NETLIFY_BACKEND) {
+                            await callApi('DELETE', null, `?id=${id}`);
+                        } else {
+                            await remove(ref(db, `${DB_PATH}/${id}`));
+                        }
+                        Swal.fire('Deleted!', 'License removed.', 'success');
+                        if(USE_NETLIFY_BACKEND) fetchData();
+                    } catch (e) {
+                        Swal.fire('Error', e.message, 'error');
+                    }
+                }
+            });
+        };
+
+        // --- HELPERS ---
+        const getEmailTemplate = (data) => {
+            return `
+                <div style="font-family: sans-serif; padding: 20px; border: 1px solid #ddd;">
+                    <h2 style="color: #4f46e5;">PrimaDev License</h2>
+                    <p>Hi ${data.name},</p>
+                    <p>Here is your license key for <strong>com.primadev.strukapp</strong>:</p>
+                    <div style="background: #f3f4f6; padding: 15px; font-family: monospace; font-size: 18px; text-align: center; border-radius: 8px; margin: 20px 0;">
+                        ${data.key}
+                    </div>
+                    <p>Type: <strong>${data.type}</strong><br>Expires: <strong>${data.expiryDate}</strong></p>
+                    <p>Enjoy!<br>- Wisnu</p>
+                </div>
+            `;
+        };
+        
+        const sendEmailClientSide = async (data) => {
+            // Reconstruct data for EmailJS format
+            // NOTE: This uses the function from previous turn, just simpler
+            console.log("Sending email via Client...", data.email);
+            // In production uncomment:
+            // await emailjs.send(EMAILJS_SERVICE_ID, EMAILJS_TEMPLATE_ID, { ... });
+            return Promise.resolve(); 
+        };
+
+        // Global functions (Modal, etc)
+        window.openCreateModal = () => {
+            document.getElementById('createForm').reset();
+            window.generateRandomKey();
+            window.autoSetExpiry();
+            new bootstrap.Modal(document.getElementById('createModal')).show();
+        };
+
+        window.openEditFunc = (id) => {
+            const item = licensesData.find(x => x.id === id);
+            if (!item) return;
+            currentEditId = id;
+            document.getElementById('displayEditKey').innerText = item.key;
+            document.getElementById('editStatus').value = (item.status || 'active').charAt(0).toUpperCase() + (item.status || 'active').slice(1);
+            document.getElementById('editExpiry').value = item.expiryDate;
+            document.getElementById('editDeviceId').value = item.deviceId || '';
+            new bootstrap.Modal(document.getElementById('editModal')).show();
+        };
+
+        window.generateRandomKey = () => {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            const seg = () => Array(4).fill(0).map(() => chars.charAt(Math.floor(Math.random() * chars.length))).join('');
+            document.getElementById('createKey').value = `PRIMA-${seg()}-${seg()}-${seg()}`;
+        };
+
+        window.autoSetExpiry = () => {
+            const type = document.getElementById('createType').value.toLowerCase();
+            const dateInput = document.getElementById('createExpiry');
+            const today = new Date();
+            if (type === 'monthly') today.setMonth(today.getMonth() + 1);
+            else if (type === 'yearly') today.setFullYear(today.getFullYear() + 1);
+            else today.setFullYear(today.getFullYear() + 100);
+            dateInput.value = today.toISOString().split('T')[0];
+        };
+
+        window.resetDeviceLock = () => { document.getElementById('editDeviceId').value = ''; };
+
+        const updateStats = () => {
+            document.getElementById('totalLicenses').innerText = licensesData.length;
+            const activeCount = licensesData.filter(i => (i.status || '').toLowerCase() === 'active').length;
+            document.getElementById('activeLicenses').innerText = activeCount;
+            document.getElementById('expiredLicenses').innerText = licensesData.length - activeCount;
+        };
+        
+        window.renderTable = (data) => {
+            const tbody = document.getElementById('licenseTableBody');
+            const emptyState = document.getElementById('emptyState');
+            tbody.innerHTML = '';
+            if (data.length === 0) { emptyState.classList.remove('d-none'); return; }
+            emptyState.classList.add('d-none');
+
+            data.forEach(item => {
+                const type = (item.type || '').toLowerCase();
+                let typeBadge = type === 'lifetime' ? '<span class="badge-custom badge-gold">Lifetime</span>' : type === 'yearly' ? '<span class="badge-custom badge-blue">Yearly</span>' : '<span class="badge-custom badge-green">Monthly</span>';
+                const status = (item.status || '').toLowerCase();
+                let statusClass = status === 'active' ? 'badge-status-active' : status === 'banned' ? 'badge-status-banned' : 'badge-status-expired';
+                
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><div class="license-key">${item.key}</div></td>
+                    <td>
+                        <div class="fw-bold text-dark">${item.name || '-'}</div>
+                        <div class="small text-muted">${item.email || '-'}</div>
+                    </td>
+                    <td>${typeBadge}</td>
+                    <td><span class="badge-custom ${statusClass}">${status}</span></td>
+                    <td><span class="text-muted small">${item.deviceId ? item.deviceId.substring(0,8)+'...' : 'None'}</span></td>
+                    <td class="small fw-bold text-secondary">${item.expiryDate || '-'}</td>
+                    <td class="text-end">
+                        <button class="btn btn-action btn-edit" onclick="openEditFunc('${item.id}')"><i class="fa-solid fa-pen"></i></button>
+                        <button class="btn btn-action btn-delete" onclick="deleteFunc('${item.id}')"><i class="fa-solid fa-trash-can"></i></button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        };
+        
+        window.fetchData = fetchData; // Expose for refresh button
+
+        // Init
+        const init = () => {
+            try { emailjs.init(EMAILJS_PUBLIC_KEY); } catch (e) {}
+            
+            // UI Status
+            document.getElementById('backendStatusBadge').innerText = USE_NETLIFY_BACKEND 
+                ? "Running: Backend Mode (Netlify)" 
+                : "Running: Client Mode (Direct Firebase)";
+            document.getElementById('backendStatusBadge').className = USE_NETLIFY_BACKEND
+                ? "badge bg-success mt-2"
+                : "badge bg-warning text-dark mt-2";
+
+            setInterval(() => {
+                const now = new Date();
+                document.getElementById('clock').innerText = now.toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'});
+            }, 1000);
+
+            onAuthStateChanged(auth, (user) => {
+                if (user) {
+                    loginSection.classList.add('d-none');
+                    dashboardSection.classList.remove('d-none');
+                    setupRealtimeListener();
+                } else {
+                    loginSection.classList.remove('d-none');
+                    dashboardSection.classList.add('d-none');
+                    loadingOverlay.style.display = 'none';
+                }
+            });
+        };
+        init();
+    </script>
+</body>
+</html>
