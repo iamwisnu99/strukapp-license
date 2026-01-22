@@ -1,7 +1,6 @@
 const admin = require('firebase-admin');
 const fetch = require('node-fetch');
 
-// --- 1. INISIALISASI FIREBASE ADMIN (GOD MODE) ---
 if (!admin.apps.length) {
   try {
     const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
@@ -16,8 +15,6 @@ if (!admin.apps.length) {
 }
 
 const db = admin.database();
-
-// --- 2. HELPER: RESPONSE FORMATTER ---
 const headers = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
@@ -32,12 +29,9 @@ const respond = (statusCode, body) => {
   };
 };
 
-// --- 3. HELPER: EMAILJS VIA API ---
-// --- 3. HELPER: EMAILJS VIA API (REVISI JUJUR) ---
 const sendEmail = async (data) => {
   const url = 'https://api.emailjs.com/api/v1.0/email/send';
-  
-  // Pastiin env var lu bener, kalau undefined mending errorin sekalian
+
   if (!process.env.EMAILJS_SERVICE_ID || !process.env.EMAILJS_PRIVATE_KEY) {
      throw new Error("ENV Variable EmailJS belum di-set di Netlify!");
   }
@@ -67,7 +61,6 @@ const sendEmail = async (data) => {
   // Cek HTTP Status dari EmailJS
   if (!response.ok) {
       const text = await response.text();
-      // Lempar error biar ditangkep sama Handler utama
       throw new Error(`EmailJS Gagal: ${response.status} - ${text}`);
   }
   
@@ -76,7 +69,6 @@ const sendEmail = async (data) => {
 
 // --- 4. MAIN HANDLER ---
 exports.handler = async (event, context) => {
-  // Handle Preflight Request (CORS)
   if (event.httpMethod === 'OPTIONS') {
     return respond(200, { message: 'CORS OK' });
   }
@@ -88,21 +80,18 @@ exports.handler = async (event, context) => {
   }
 
   try {
-    // Verifikasi Token (Memastikan request datang dari user yang login)
     await admin.auth().verifyIdToken(token);
   } catch (error) {
     return respond(403, { error: 'Forbidden: Token basi atau palsu.' });
   }
 
-  const path = 'licenses'; // Path di Realtime DB
+  const path = 'licenses';
 
   try {
     // --- GET (READ DATA) ---
     if (event.httpMethod === 'GET') {
       const snapshot = await db.ref(path).once('value');
       const data = snapshot.val() || {};
-      
-      // Transform object to array (biar frontend enak makannya)
       const list = Object.keys(data).map(key => ({
         id: key,
         key: key,
@@ -129,10 +118,8 @@ exports.handler = async (event, context) => {
         createdAt: Date.now()
       };
 
-      // Simpan ke DB (Pake Key sebagai ID)
       await db.ref(`${path}/${key}`).set(newLicense);
 
-      // Kirim Email (Server Side)
       if (sendEmailCheck) {
         await sendEmail({ name, email, key, type, expiryDate, html_template });
       }

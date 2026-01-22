@@ -5,6 +5,7 @@
   "main": "index.js",
   "dependencies": {
     "firebase-admin": "^11.11.1",
-    "node-fetch": "^2.7.0"
+    "node-fetch": "^2.7.0",
+    "pdfkit": "^0.12.3"
   }
 }
