@@ -91,8 +91,8 @@
                 display: flex;
                 width: 60%;
                 height: 100vh;
-                background-color: #f3f4f6;
-                background-image: url('https://i.imgur.com/WGBCK1s.png'); 
+                background: #64c6ed;
+                background: linear-gradient(90deg, rgba(100, 198, 237, 1) 0%, rgba(176, 204, 212, 1) 52%, rgba(89, 222, 220, 1) 100%);
                 background-size: cover;
                 background-position: center;
                 align-items: center;
@@ -348,12 +348,11 @@
         <div class="login-container">
             <div class="mb-4">
                 <div class="d-flex align-items-center mb-4">
-                     <img src="https://i.imgur.com/BZ1xLO3.png" alt="Logo" width="40" height="40" class="rounded me-2">
-                    <span class="fw-bold h4 m-0 text-primary">PrimaDev</span>
+                    <img src="https://i.imgur.com/BZ1xLO3.png" alt="Logo" width="301" height="98" class="rounded me-2">
                 </div>
                 
                 <h2 class="fw-bold text-dark display-6">Welcome Back!</h2>
-                <p class="text-muted">Masuk untuk mengelola lisensi sakral ini.</p>
+                <p class="text-muted">Masuk untuk mengelola lisensi.</p>
             </div>
             
             <form id="loginForm" onsubmit="handleLogin(event)">
@@ -401,7 +400,7 @@
             
             <div class="position-absolute bottom-0 start-0 p-5 text-white" style="z-index: 3;">
                 <h3 class="fw-bold">Manage Licenses with Style.</h3>
-                <p class="opacity-75">Sistem manajemen lisensi terpercaya se-alam semesta.</p>
+                <p class="opacity-75">Sistem manajemen lisensi yang terintegrasi dengan Firebase.</p>
             </div>
         </div>
 
