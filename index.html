@@ -363,13 +363,19 @@
                 </div>
                 
                 <div class="mb-4">
-                    <div class="form-floating input-group">
-                        <input type="password" class="form-control bg-light border-0" id="loginPassword" placeholder="Password" required style="border-radius: 12px 0 0 12px;">
-                        <label for="loginPassword">Password</label>
-                        <button class="btn btn-light border-0" type="button" onclick="togglePassword()" style="border-radius: 0 12px 12px 0;">
+                    <div class="input-group has-validation">
+                        
+                        <div class="form-floating is-invalid"> <input type="password" class="form-control bg-light border-0" id="loginPassword" placeholder="Password" required style="border-radius: 12px 0 0 12px;">
+                            <label for="loginPassword">Password</label>
+                        </div>
+
+                        <button class="btn btn-light border-0" type="button" onclick="togglePassword()" style="border-radius: 0 12px 12px 0; z-index: 3;">
                             <i class="fa-solid fa-eye text-muted" id="toggleIcon"></i>
                         </button>
-                        <div class="invalid-feedback" id="passwordError">Password salah!</div>
+
+                        <div class="invalid-feedback" id="passwordError">
+                            Password salah!
+                        </div>
                     </div>
                 </div>
 
@@ -716,6 +722,7 @@
         const firebaseConfig = {
             apiKey: "AIzaSyBB3BJbwwV7Qo_2LIDQn5DYwebs_NxDocE", 
             authDomain: "strukmaker-3327d110.firebaseapp.com",
+            databaseURL: "https://strukmaker-3327d110-default-rtdb.asia-southeast1.firebasedatabase.app",
             projectId: "strukmaker-3327d110",
             storageBucket: "strukmaker-3327d110.firebasestorage.app",
             messagingSenderId: "486037943823",

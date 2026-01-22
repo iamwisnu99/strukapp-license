@@ -5,7 +5,7 @@ const PDFDocument = require('pdfkit');
 if (!admin.apps.length) {
     admin.initializeApp({
         credential: admin.credential.cert(JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT)),
-        databaseURL: "https://strukmaker-3327d110-default-rtdb.asia-southeast1.firebasedatabase.app"
+        databaseURL: "https://strukmaker-3327d110-default-rtdb.asia-southeast1.firebasedatabase.app/"
     });
 }
 const db = admin.database();

@@ -7,7 +7,7 @@ if (!admin.apps.length) {
     
     admin.initializeApp({
       credential: admin.credential.cert(serviceAccount),
-      databaseURL: process.env.FIREBASE_DATABASE_URL
+      databaseURL: "https://strukmaker-3327d110-default-rtdb.asia-southeast1.firebasedatabase.app"
     });
   } catch (error) {
     console.error("Firebase Admin Init Error:", error);
