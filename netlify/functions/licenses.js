@@ -1,45 +1,73 @@
-const admin = require('firebase-admin');
 const fetch = require('node-fetch');
+const admin = require('firebase-admin');
+const { getPremiumTemplate } = require('./email_template');
 
+// --- DATABASE PRODUK (Fallback agar harga tidak 0) ---
+let PRICING_DB;
+try {
+  PRICING_DB = require('../../products.json');
+} catch (e) {
+  console.log("Using Default Pricing");
+  PRICING_DB = {
+    "struk-spbu": {
+      "name": "Aplikasi Struk SPBU",
+      "price": { "monthly": 80000, "yearly": 860000, "lifetime": 1599000 }
+    }
+  };
+}
+
+// --- INIT FIREBASE ---
 if (!admin.apps.length) {
+  let serviceAccount = null;
   try {
-    const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
-    
-    admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount),
-      databaseURL: "https://strukmaker-3327d110-default-rtdb.asia-southeast1.firebasedatabase.app"
-    });
+    if (process.env.FIREBASE_PRIVATE_KEY && process.env.FIREBASE_CLIENT_EMAIL) {
+      serviceAccount = {
+        projectId: process.env.FIREBASE_PROJECT_ID,
+        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+        privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n').replace(/"/g, '')
+      };
+    } else if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+      const raw = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+      serviceAccount = {
+        projectId: raw.project_id,
+        clientEmail: raw.client_email,
+        privateKey: raw.private_key.replace(/\\n/g, '\n')
+      };
+    }
+
+    if (serviceAccount) {
+      admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount),
+        databaseURL: process.env.FIREBASE_DATABASE_URL || "https://strukmaker-3327d110-default-rtdb.asia-southeast1.firebasedatabase.app"
+      });
+    }
   } catch (error) {
-    console.error("Firebase Admin Init Error:", error);
+    console.error("Firebase Init Error", error);
   }
 }
 
 const db = admin.database();
-const headers = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS'
-};
 
-const respond = (statusCode, body) => {
-  return {
-    statusCode,
-    headers,
-    body: JSON.stringify(body)
-  };
-};
+const sendEmail = async (data, contextMethod) => {
+  if (contextMethod !== 'POST') return;
 
-const sendEmail = async (data) => {
   const url = 'https://api.emailjs.com/api/v1.0/email/send';
+  if (!process.env.EMAILJS_SERVICE_ID) return;
 
-  if (!process.env.EMAILJS_SERVICE_ID || !process.env.EMAILJS_PRIVATE_KEY) {
-     throw new Error("ENV Variable EmailJS belum di-set di Netlify!");
-  }
+  // Fallback ke template premium jika html_template kosong
+  const messageHtml = data.html_template || getPremiumTemplate({
+    name: data.name,
+    key: data.key,
+    appName: data.appName || 'Aplikasi Struk SPBU',
+    type: data.type || 'Standard',
+    expiryDate: data.expiryDate,
+    transactionId: data.transactionId || 'MANUAL-ADMIN'
+  });
 
   const payload = {
     service_id: process.env.EMAILJS_SERVICE_ID,
     template_id: process.env.EMAILJS_TEMPLATE_ID,
-    user_id: process.env.EMAILJS_PUBLIC_KEY, 
+    user_id: process.env.EMAILJS_PUBLIC_KEY,
     accessToken: process.env.EMAILJS_PRIVATE_KEY,
     template_params: {
       to_email: data.email,
@@ -47,95 +75,129 @@ const sendEmail = async (data) => {
       license_key: data.key,
       expiry_date: data.expiryDate,
       type: data.type,
-      message_html: data.html_template
+      message_html: messageHtml
     }
   };
 
-  // Hapus try-catch disini, biar error-nya naik ke atas (Handler utama)
-  const response = await fetch(url, {
+  try {
+    const res = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
-  });
-
-  // Cek HTTP Status dari EmailJS
-  if (!response.ok) {
-      const text = await response.text();
-      throw new Error(`EmailJS Gagal: ${response.status} - ${text}`);
+    });
+    if (!res.ok) {
+      console.error("EmailJS Error:", await res.text());
+    }
+  } catch (err) {
+    console.error("Email Error:", err);
   }
-  
-  console.log("Email sent successfully to", data.email);
 };
 
-// --- 4. MAIN HANDLER ---
 exports.handler = async (event, context) => {
+  // Header agar bisa diakses dari frontend (CORS)
+  const headers = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE'
+  };
+
+  // Helper Respon
+  const respond = (statusCode, body) => {
+    return {
+      statusCode,
+      headers,
+      body: JSON.stringify(body)
+    };
+  };
+
+  // Handle OPTIONS (Preflight Request)
   if (event.httpMethod === 'OPTIONS') {
-    return respond(200, { message: 'CORS OK' });
-  }
-
-  // --- SECURITY CHECK (VERIFY TOKEN) ---
-  const token = event.headers.authorization?.split('Bearer ')[1];
-  if (!token) {
-    return respond(401, { error: 'Unauthorized: Mana tokennya woy?' });
-  }
-
-  try {
-    await admin.auth().verifyIdToken(token);
-  } catch (error) {
-    return respond(403, { error: 'Forbidden: Token basi atau palsu.' });
+    return respond(200, {});
   }
 
   const path = 'licenses';
 
   try {
-    // --- GET (READ DATA) ---
     if (event.httpMethod === 'GET') {
-      const snapshot = await db.ref(path).once('value');
-      const data = snapshot.val() || {};
-      const list = Object.keys(data).map(key => ({
-        id: key,
-        key: key,
-        ...data[key]
-      })).sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+      const id = event.queryStringParameters.id;
 
-      return respond(200, list);
+      if (!id) return respond(400, { error: 'Missing ID parameter' });
+
+      const snapshot = await db.ref(`${path}/${id}`).once('value');
+
+      if (!snapshot.exists()) {
+        return respond(404, { error: 'License Not Found' });
+      }
+
+      const data = snapshot.val();
+      return respond(200, data);
     }
 
-    // --- POST (CREATE LICENSE) ---
     if (event.httpMethod === 'POST') {
-      const body = JSON.parse(event.body);
-      const { key, name, email, type, expiryDate, sendEmailCheck, html_template } = body;
+      const body = JSON.parse(event.body || '{}');
+      const { name, email, type, expiryDate, appName, sendEmailCheck, html_template, paymentMethod, transactionId } = body;
 
-      if (!key || !email) return respond(400, { error: 'Data kurang lengkap bos.' });
+      // Gunakan key dari body jika ada (dari Admin Panel), jika tidak generate baru
+      const generateKey = () => {
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+        const seg = () => Array(4).fill(0).map(() => chars.charAt(Math.floor(Math.random() * chars.length))).join('');
+        return `PRIMA-${seg()}-${seg()}-${seg()}`;
+      };
+
+      const key = body.key || generateKey();
+
+      const cleanType = (type || 'monthly').toLowerCase();
+      let fixedPrice = 0;
+      const product = PRICING_DB['struk-spbu'] || {}
+      if (product.price && product.price[cleanType]) {
+        fixedPrice = product.price[cleanType];
+      }
+
+      const autoTransactionId = transactionId || `MANUAL-${Date.now()}`;
 
       const newLicense = {
+        key: key,
         status: 'active',
-        type: type.toLowerCase(),
+        type: cleanType,
+        price: fixedPrice,
         deviceId: '',
         expiryDate,
         name,
         email,
+        appName: appName || 'Aplikasi Struk SPBU',
+        paymentMethod: paymentMethod || 'Manual Admin',
+        transactionId: autoTransactionId,
         createdAt: Date.now()
       };
 
       await db.ref(`${path}/${key}`).set(newLicense);
 
       if (sendEmailCheck) {
-        await sendEmail({ name, email, key, type, expiryDate, html_template });
+        await sendEmail({
+          name,
+          email,
+          key,
+          type,
+          expiryDate,
+          html_template,
+          appName: appName || 'Aplikasi Struk SPBU',
+          transactionId: autoTransactionId
+        }, event.httpMethod);
       }
 
       return respond(201, { message: 'License Created', data: newLicense });
     }
 
-    // --- PUT (UPDATE LICENSE) ---
     if (event.httpMethod === 'PUT') {
       const body = JSON.parse(event.body);
       const { id, status, expiryDate, deviceId } = body;
 
-      if (!id) return respond(400, { error: 'Mau update yang mana? ID nya mana?' });
+      if (!id) return respond(400, { error: 'No ID provided' });
+
+      const safeStatus = status ? status.toLowerCase() : 'active';
 
       await db.ref(`${path}/${id}`).update({
-        status: status.toLowerCase(),
+        status: safeStatus,
         expiryDate,
         deviceId
       });
@@ -143,11 +205,9 @@ exports.handler = async (event, context) => {
       return respond(200, { message: 'License Updated' });
     }
 
-    // --- DELETE (REMOVE LICENSE) ---
     if (event.httpMethod === 'DELETE') {
       const id = event.queryStringParameters.id;
-
-      if (!id) return respond(400, { error: 'Mau hapus yang mana?' });
+      if (!id) return respond(400, { error: 'No ID provided' });
 
       await db.ref(`${path}/${id}`).remove();
       return respond(200, { message: 'License Deleted' });
@@ -156,7 +216,7 @@ exports.handler = async (event, context) => {
     return respond(405, { error: 'Method Not Allowed' });
 
   } catch (error) {
-    console.error("Server Error:", error);
+    console.error("Backend Error:", error);
     return respond(500, { error: error.message });
   }
 };

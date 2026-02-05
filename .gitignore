@@ -6,3 +6,5 @@ dist/
 .vscode/
 .idea/
 3d.png
+# Local Netlify folder
+.netlify
