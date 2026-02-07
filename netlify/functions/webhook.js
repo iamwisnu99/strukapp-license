@@ -21,55 +21,29 @@ let apiClient = new midtransClient.CoreApi({
 
 // --- INIT FIREBASE ---
 if (!admin.apps.length) {
-  let serviceAccount = null;
-
   try {
     if (process.env.FIREBASE_PRIVATE_KEY && process.env.FIREBASE_CLIENT_EMAIL) {
-      console.log("[INIT] Menggunakan ENV Variable Terpisah...");
-      serviceAccount = {
+      console.log("[INIT] Menggunakan ENV Variable...");
+      
+      const serviceAccount = {
         projectId: process.env.FIREBASE_PROJECT_ID,
         clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-        privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n').replace(/"/g, '')
+        privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n').replace(/"/g, '') 
       };
-    }
-    // CARA 2: Cek Format JSON Satu Blok (Cara Lama)
-    else if (process.env.FIREBASE_SERVICE_ACCOUNT) {
-      console.log("[INIT] Menggunakan ENV JSON Blob...");
-      const raw = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
-      serviceAccount = {
-        projectId: raw.project_id,
-        clientEmail: raw.client_email,
-        privateKey: raw.private_key.replace(/\\n/g, '\n') // Sanitasi juga
-      };
-    }
-    // CARA 3: File Lokal (Untuk Localhost)
-    else {
-      console.log("[INIT] Mencari File JSON Lokal...");
-      serviceAccount = require('../../strukmaker-3327d110-firebase-adminsdk-fbsvc-28cd459e84.json');
+
+      admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount),
+        databaseURL: process.env.FIREBASE_DATABASE_URL || "https://strukmaker-3327d110-default-rtdb.asia-southeast1.firebasedatabase.app"
+      });
+      
+      console.log("✅ Firebase Berhasil Terhubung!");
+      
+    } else {
+      throw new Error("❌ FATAL: Environment Variable FIREBASE_PRIVATE_KEY atau CLIENT_EMAIL gak ketemu!");
     }
 
   } catch (err) {
-    console.error("[INIT ERROR] Gagal memproses kredensial:", err.message);
-  }
-
-  // --- FINAL CHECK & CONNECT ---
-  const dbUrl = process.env.FIREBASE_DATABASE_URL || "https://strukmaker-3327d110-default-rtdb.asia-southeast1.firebasedatabase.app";
-
-  if (serviceAccount && serviceAccount.privateKey) {
-    const keySample = serviceAccount.privateKey.substring(0, 30);
-    console.log(`[INIT] Private Key Check: ${keySample}... (Valid Header?)`);
-
-    if (!serviceAccount.privateKey.includes("BEGIN PRIVATE KEY")) {
-      console.error("❌ FATAL: Format Private Key SALAH! Pastikan mengandung '-----BEGIN PRIVATE KEY-----'");
-    } else {
-      admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount),
-        databaseURL: dbUrl
-      });
-      console.log("✅ Firebase Berhasil Terhubung!");
-    }
-  } else {
-    console.error("❌ FATAL: Tidak ada kredensial yang terbaca. Cek .env kamu!");
+    console.error("[INIT ERROR] Gagal connect Firebase:", err.message);
   }
 }
 

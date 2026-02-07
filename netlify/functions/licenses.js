@@ -16,33 +16,32 @@ try {
   };
 }
 
-// --- INIT FIREBASE ---
+//
+// --- INISIALISASI FIREBASE (SMART MODE - STRICT ENV) ---
 if (!admin.apps.length) {
-  let serviceAccount = null;
   try {
     if (process.env.FIREBASE_PRIVATE_KEY && process.env.FIREBASE_CLIENT_EMAIL) {
-      serviceAccount = {
+      console.log("[INIT] Menggunakan ENV Variable...");
+      
+      const serviceAccount = {
         projectId: process.env.FIREBASE_PROJECT_ID,
         clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-        privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n').replace(/"/g, '')
+        privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n').replace(/"/g, '') 
       };
-    } else if (process.env.FIREBASE_SERVICE_ACCOUNT) {
-      const raw = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
-      serviceAccount = {
-        projectId: raw.project_id,
-        clientEmail: raw.client_email,
-        privateKey: raw.private_key.replace(/\\n/g, '\n')
-      };
-    }
 
-    if (serviceAccount) {
       admin.initializeApp({
         credential: admin.credential.cert(serviceAccount),
         databaseURL: process.env.FIREBASE_DATABASE_URL || "https://strukmaker-3327d110-default-rtdb.asia-southeast1.firebasedatabase.app"
       });
+      
+      console.log("✅ Firebase Berhasil Terhubung!");
+      
+    } else {
+      throw new Error("❌ FATAL: Environment Variable FIREBASE_PRIVATE_KEY atau CLIENT_EMAIL gak ketemu!");
     }
-  } catch (error) {
-    console.error("Firebase Init Error", error);
+
+  } catch (err) {
+    console.error("[INIT ERROR] Gagal connect Firebase:", err.message);
   }
 }
 
